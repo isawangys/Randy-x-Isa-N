@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💍 婚禮管理 — Isa & Randy · 2026/12/13</title>
+<style>
+:root {
+  --rose:#c9747a;--rose-l:#f5e6e8;--rose-m:#e8b4b8;
+  --gold:#b8975a;--gold-l:#f7f0e3;
+  --green:#5a8a6a;--green-l:#e6f2eb;
+  --blue:#5a7aa8;--blue-l:#e6eef7;
+  --gray:#6b7280;--gray-l:#f3f4f6;
+  --border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.08);
+  --text:#2d2d2d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;background:#faf7f5;color:var(--text);min-height:100vh}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#c9747a,#a85c62);color:#fff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+header h1{font-size:20px;font-weight:700;letter-spacing:1px}
+header .sub{font-size:12px;opacity:.85;margin-top:3px}
+.cbox{background:rgba(255,255,255,.2);border-radius:12px;padding:8px 18px;text-align:center}
+.cbox .days{font-size:30px;font-weight:800;line-height:1}
+.cbox .cl{font-size:11px;opacity:.9;margin-top:2px}
+
+/* DASHBOARD */
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px 0}
+.sc{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);border-left:4px solid var(--rose)}
+.sc.b{border-left-color:var(--gold)}.sc.g{border-left-color:var(--blue)}.sc.t{border-left-color:var(--green)}
+.sc .sn{font-size:26px;font-weight:800;color:var(--rose)}
+.sc.b .sn{color:var(--gold)}.sc.g .sn{color:var(--blue)}.sc.t .sn{color:var(--green)}
+.sc .sl{font-size:12px;color:var(--gray);margin-top:3px}
+.pbar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+.pfill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+
+/* TABS */
+.tabs{display:flex;gap:3px;padding:20px 28px 0;flex-wrap:wrap}
+.tb{padding:9px 18px;border:none;background:var(--gray-l);color:var(--gray);cursor:pointer;font-size:13px;font-weight:600;border-radius:10px 10px 0 0;transition:all .2s}
+.tb.act{background:#fff;color:var(--rose);box-shadow:0 -2px 8px rgba(0,0,0,.06)}
+.tb:hover:not(.act){background:#e5e7eb}
+
+/* CONTENT */
+.content{background:#fff;margin:0 28px 28px;border-radius:0 16px 16px 16px;box-shadow:var(--shadow);padding:24px;min-height:400px}
+.panel{display:none}.panel.act{display:block}
+
+/* SECTION HEADER */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.st{font-size:17px;font-weight:700}.st span{font-size:12px;font-weight:400;color:var(--gray);margin-left:8px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;font-family:inherit}
+.bp{background:var(--rose);color:#fff}.bp:hover{background:#b5676d}
+.bg{background:var(--gold);color:#fff}.bg:hover{background:#a07a3e}
+.bb{background:var(--blue);color:#fff}.bb:hover{background:#456090}
+.bgr{background:var(--green);color:#fff}.bgr:hover{background:#457055}
+.bsm{padding:4px 9px;font-size:12px;border-radius:6px}
+.bd{background:#fee2e2;color:#dc2626}.bd:hover{background:#fca5a5}
+.bgh{background:var(--gray-l);color:var(--gray)}.bgh:hover{background:#e5e7eb}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--gray-l);padding:9px 11px;text-align:left;font-weight:600;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
+td{padding:10px 11px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.bp-b{background:#fef3c7;color:#92400e}
+.bb-b{background:#dbeafe;color:#1e40af}
+.bg-b{background:var(--green-l);color:var(--green)}
+.ur-b{background:#fee2e2;color:#dc2626}
+
+/* FILTERS */
+.filters{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.fb{padding:4px 13px;border:1px solid var(--border);background:#fff;border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;color:var(--gray)}
+.fb.act,.fb:hover{background:var(--rose);color:#fff;border-color:var(--rose)}
+.si{padding:7px 13px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:180px;font-family:inherit}
+.si:focus{outline:none;border-color:var(--rose)}
+
+/* BUDGET SUMMARY */
+.bsum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.bcard{background:var(--gray-l);border-radius:12px;padding:14px}
+.bcard .bn{font-size:19px;font-weight:800}.bcard .bl{font-size:11px;color:var(--gray)}
+.bcard.tot .bn{color:var(--gold)}.bcard.sp .bn{color:var(--rose)}
+.bcard.re .bn{color:var(--green)}.bcard.un .bn{color:#dc2626}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
+.ov.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:26px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:18px}
+.fg{margin-bottom:12px}.fg label{display:block;font-size:11px;font-weight:600;color:var(--gray);margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;transition:border .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--rose);box-shadow:0 0 0 3px rgba(201,116,122,.1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* DEADLINE */
+.ds{color:#f59e0b;font-weight:600}.do{color:#dc2626;font-weight:600}
+
+/* PILL */
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--rose-l);color:var(--rose)}
+.pill.g{background:var(--gold-l);color:var(--gold)}.pill.b{background:var(--blue-l);color:var(--blue)}
+.pill.gr{background:var(--green-l);color:var(--green)}
+
+/* GANTT */
+.gantt-wrap{overflow-x:auto}
+.gantt-table{border-collapse:collapse;font-size:11px;min-width:900px}
+.gantt-table th,.gantt-table td{border:1px solid var(--border);padding:5px 6px;white-space:nowrap}
+.gantt-table .row-label{font-weight:600;min-width:160px;max-width:200px;background:#fff;position:sticky;left:0;z-index:1;font-size:12px}
+.gantt-table .wk-head{background:var(--gray-l);text-align:center;min-width:32px;color:var(--gray)}
+.gantt-table .wk-head.near{background:#fff3cd}
+.gantt-cell-done{background:var(--green);border-radius:4px}
+.gantt-cell-booked{background:var(--gold);border-radius:4px}
+.gantt-cell-pending{background:var(--rose);border-radius:4px}
+.gantt-cell-today{background:#f0f9ff}
+
+/* SEATING — vertical layout */
+.seating-tables{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;overflow-x:auto}
+.seat-table-col{background:var(--gray-l);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;min-width:140px}
+.seat-col-header{font-size:12px;font-weight:700;color:var(--gray);text-align:center;margin-bottom:10px;letter-spacing:1px;padding-bottom:8px;border-bottom:2px solid var(--border);width:100%}
+.seat-col-subheader{display:flex;justify-content:space-between;width:100%;font-size:10px;color:var(--gray);margin-bottom:6px;padding:0 4px}
+.seat-pair{display:flex;align-items:center;gap:3px;margin:2px 0}
+.seat-spine{width:8px;height:26px;background:linear-gradient(180deg,var(--border),#d1d5db);border-radius:2px;flex-shrink:0}
+.seat{width:28px;height:28px;border-radius:6px;border:2px solid var(--border);background:#fff;cursor:pointer;font-size:8px;font-weight:700;color:var(--gray);display:flex;align-items:center;justify-content:center;transition:all .15s;position:relative;flex-shrink:0}
+.seat:hover{border-color:var(--rose);color:var(--rose);transform:scale(1.1)}
+.seat.taken{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
+.seat.taken:hover{background:#3a6090;border-color:#3a6090}
+.seat-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
+.seat:hover .seat-tooltip{opacity:1}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 0;color:var(--gray)}.empty .ei{font-size:40px;margin-bottom:10px}
+
+@media(max-width:768px){
+  .dash{grid-template-columns:repeat(2,1fr)}
+  .bsum{grid-template-columns:repeat(2,1fr)}
+  .tabs{padding:14px 14px 0}
+  .content{margin:0 14px 20px;padding:16px}
+  .dash{padding:14px 14px 0}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>💍 Isa & Randy 婚禮管理</h1>
+    <div class="sub">2026 年 12 月 13 日（週日）· 早上證婚 ＋ 中午半自助宴客 · 約 180 位賓客</div>
+  </div>
+  <div class="cbox">
+    <div class="days" id="cd">—</div>
+    <div class="cl">距離婚禮天數</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="sc">
+    <div class="sn" id="st-todo">0</div>
+    <div class="sl">📋 待完成項目</div>
+    <div class="pbar"><div class="pfill" id="tp" style="width:0%"></div></div>
+  </div>
+  <div class="sc b">
+    <div class="sn" id="st-bgt">NT$0</div>
+    <div class="sl">💰 已支付總額</div>
+    <div class="pbar"><div class="pfill" id="bp-fill" style="width:0%;background:var(--gold)"></div></div>
+  </div>
+  <div class="sc g">
+    <div class="sn" id="st-guest">0</div>
+    <div class="sl">👥 確認出席人數</div>
+  </div>
+  <div class="sc t">
+    <div class="sn" id="st-seats">0</div>
+    <div class="sl">🪑 已安排座位</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tb act" onclick="switchTab('todo',this)">📋 待辦清單</button>
+  <button class="tb" onclick="switchTab('gantt',this)">📊 甘特圖</button>
+  <button class="tb" onclick="switchTab('budget',this)">💰 預算規劃</button>
+  <button class="tb" onclick="switchTab('guest',this)">👥 賓客名單</button>
+  <button class="tb" onclick="switchTab('seat',this)">🪑 座位安排</button>
+</div>
+
+<div class="content">
+
+<!-- ===== 待辦清單 ===== -->
+<div class="panel act" id="panel-todo">
+  <div class="sh">
+    <div class="st">待辦清單 <span>點選勾選框更新狀態</span></div>
+    <button class="btn bp" onclick="openModal('todo')">＋ 新增項目</button>
+  </div>
+  <div class="filters" id="todo-flt">
+    <input type="text" class="si" placeholder="搜尋..." oninput="renderTodo(this.value)">
+    <button class="fb act" onclick="setFlt('todo','all',this)">全部</button>
+    <button class="fb" onclick="setFlt('todo','pending',this)">未開始</button>
+    <button class="fb" onclick="setFlt('todo','booked',this)">已預約</button>
+    <button class="fb" onclick="setFlt('todo','done',this)">已完成</button>
+    <button class="fb" onclick="setFlt('todo','urgent',this)">🔴 即將到期</button>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:28px"></th>
+      <th>項目</th><th>分類</th><th>截止日期</th><th>狀態</th><th>備註</th><th style="width:80px">操作</th>
+    </tr></thead>
+    <tbody id="todo-body"></tbody>
+  </table>
+</div>
+
+<!-- ===== 甘特圖 ===== -->
+<div class="panel" id="panel-gantt">
+  <div class="sh">
+    <div class="st">甘特圖 <span>以週為單位，顯示各項目截止日期</span></div>
+    <div style="display:flex;gap:10px;font-size:12px;align-items:center">
+      <span style="background:var(--green);color:#fff;padding:2px 8px;border-radius:4px">已完成</span>
+      <span style="background:var(--gold);color:#fff;padding:2px 8px;border-radius:4px">已預約</span>
+      <span style="background:var(--rose);color:#fff;padding:2px 8px;border-radius:4px">未開始</span>
+    </div>
+  </div>
+  <div class="gantt-wrap"><table class="gantt-table" id="gantt-table"></table></div>
+</div>
+
+<!-- ===== 預算規劃 ===== -->
+<div class="panel" id="panel-budget">
+  <div class="sh">
+    <div class="st">預算規劃 <span>Randy / Isa 付款追蹤</span></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bgh bsm" onclick="resetBudgetDefaults()">↺ 重新載入最新預算範本</button>
+      <button class="btn bg" onclick="openModal('budget')">＋ 新增項目</button>
+    </div>
+  </div>
+  <div class="bsum">
+    <div class="bcard tot"><div class="bn" id="b-total">$0</div><div class="bl">💰 預估總費用</div></div>
+    <div class="bcard sp"><div class="bn" id="b-randy">$0</div><div class="bl">👤 Randy 已付</div></div>
+    <div class="bcard sp" style="border-left:4px solid var(--blue)"><div class="bn" id="b-isa" style="color:var(--blue)">$0</div><div class="bl">👤 Isa 已付</div></div>
+    <div class="bcard un"><div class="bn" id="b-unpaid">$0</div><div class="bl">⏳ 未付款合計</div></div>
+    <div class="bcard" style="border-left:4px solid var(--green)"><div class="bn" id="b-incR" style="color:var(--green)">$0</div><div class="bl">🎁 Randy 收到禮金/金飾</div></div>
+    <div class="bcard" style="border-left:4px solid var(--gold)"><div class="bn" id="b-incI" style="color:var(--gold)">$0</div><div class="bl">🎁 Isa 收到禮金/金飾</div></div>
+  </div>
+  <div class="filters" id="bgt-flt">
+    <button class="fb act" onclick="setFlt('bgt','all',this)">全部</button>
+    <button class="fb" onclick="setFlt('bgt','paid',this)">已付清</button>
+    <button class="fb" onclick="setFlt('bgt','partial',this)">部分付款</button>
+    <button class="fb" onclick="setFlt('bgt','unpaid',this)">未付款</button>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr>
+      <th>類別</th><th>項目 / 廠商</th><th>Randy付款</th><th>Isa付款</th><th>未付款</th><th>收到禮金/金飾</th><th>合計</th><th>狀態</th><th>備註</th><th style="width:70px">操作</th>
+    </tr></thead>
+    <tbody id="bgt-body"></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== 賓客名單 ===== -->
+<div class="panel" id="panel-guest">
+  <div class="sh">
+    <div class="st">賓客名單 <span>資料來源：Google 表單</span></div>
+    <div style="display:flex;gap:8px">
+    <button class="btn bgr" onclick="syncFromGSheet()" id="sync-btn">🔄 從 Google Sheet 同步</button>
+    <button class="btn bb" onclick="openModal('guest')">＋ 手動新增</button>
+  </div>
+  </div>
+  <details style="margin-bottom:16px;background:var(--gray-l);border-radius:10px;padding:10px 14px">
+    <summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text)">⚙️ Google 表單 / Google Sheet 同步設定</summary>
+    <div style="margin-top:12px">
+      <div class="fg">
+        <label>Apps Script 網址（部署後取得）</label>
+        <input id="gsheet-url" placeholder="https://script.google.com/macros/s/…/exec"
+          value="" oninput="saveGSheetUrl(this.value)"
+          style="font-size:11px">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+        <button class="btn bgr bsm" onclick="testGSheetConnection()">🔌 測試連線</button>
+        <span id="gsheet-status" style="font-size:11px;line-height:1;color:var(--gray)"></span>
+      </div>
+      <div style="margin-top:10px;background:var(--blue-l);border-radius:8px;padding:10px;font-size:11px;color:var(--blue);line-height:1.7">
+        📋 設定步驟（Google 表單版）：<br>
+        1. 在 Google 表單「回覆」分頁 → 點試算表圖示 → 建立回覆用的 Google 試算表<br>
+        2. 開啟該試算表 → 擴充功能 → Apps Script<br>
+        3. 貼上 <strong>google_apps_script.js</strong> 的內容並儲存<br>
+        4. 部署 → 新增部署作業 → 網頁應用程式<br>
+        5. 執行身分：<strong>我</strong>、存取權：<strong>所有人</strong><br>
+        6. 複製網址貼到上方欄位 → 按「測試連線」確認成功
+      </div>
+      <div style="margin-top:8px;background:#fffbeb;border-radius:8px;padding:10px;font-size:11px;color:#92400e;line-height:1.7">
+        ⚠️ 表單目前沒有收集「邀請方（新郎/新娘）」，同步進來的賓客這欄會先留白，系統會嘗試從「與新人的關係」欄位判斷（含「新郎」→新郎方、含「新娘」→新娘方），但不一定準確，仍建議人工覆核；「出席狀態」也是依表單文字自動判斷，請一併覆核。
+      </div>
+    </div>
+  </details>
+  <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+    <div class="bcard" style="background:var(--gray-l);border-radius:10px;padding:10px 16px">
+      <div class="bn" id="g-total" style="font-size:20px;font-weight:800;color:var(--blue)">0</div><div class="bl">總邀請</div></div>
+    <div class="bcard" style="background:var(--gray-l);border-radius:10px;padding:10px 16px">
+      <div class="bn" id="g-conf" style="font-size:20px;font-weight:800;color:var(--green)">0</div><div class="bl">確認出席</div></div>
+    <div class="bcard" style="background:var(--gray-l);border-radius:10px;padding:10px 16px">
+      <div class="bn" id="g-pend" style="font-size:20px;font-weight:800;color:var(--gold)">0</div><div class="bl">待確認</div></div>
+    <div class="bcard" style="background:var(--gray-l);border-radius:10px;padding:10px 16px">
+      <div class="bn" id="g-dec" style="font-size:20px;font-weight:800;color:var(--rose)">0</div><div class="bl">無法出席</div></div>
+    <div class="bcard" style="background:var(--gray-l);border-radius:10px;padding:10px 16px">
+      <div class="bn" id="g-heads" style="font-size:20px;font-weight:800;color:var(--text)">0</div><div class="bl">確認人頭數</div></div>
+  </div>
+  <div class="filters" id="guest-flt">
+    <input type="text" class="si" placeholder="搜尋賓客..." oninput="renderGuest(this.value)">
+    <button class="fb act" onclick="setFlt('guest','all',this)">全部</button>
+    <button class="fb" onclick="setFlt('guest','groom',this)">新郎方</button>
+    <button class="fb" onclick="setFlt('guest','bride',this)">新娘方</button>
+    <button class="fb" onclick="setFlt('guest','confirmed',this)">確認出席</button>
+    <button class="fb" onclick="setFlt('guest','pending',this)">待確認</button>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr>
+      <th>姓名</th><th>與新人關係</th><th>邀請方</th><th>出席狀態</th><th>出席方式</th><th>人數</th><th>飲食/主餐</th><th>兒童</th><th>桌/座位</th><th>聯絡方式</th><th>備註</th><th style="width:90px">操作</th>
+    </tr></thead>
+    <tbody id="guest-body"></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== 座位安排 ===== -->
+<div class="panel" id="panel-seat">
+  <div class="sh">
+    <div class="st">座位安排 <span>點選座位指派賓客</span></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;font-size:12px;align-items:center">
+        <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>已指派
+        <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
+      </div>
+      <div style="font-size:12px;color:var(--gray)" id="seat-summary">已指派 0 / 0 個座位</div>
+      <button class="btn bgh bsm" onclick="clearAllSeats()">🗑 清除全部</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;color:var(--gray)">
+    <span>每排座位數：</span>
+    <input type="number" min="10" max="50" value="24" style="width:65px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px" onchange="resizeSeats(this.value)" id="seats-per-side">
+    <span id="seats-count-label" style="color:var(--rose);font-weight:600">每排 24 座 × 2 側 × 4 排 = 192 座</span>
+  </div>
+  <div style="background:linear-gradient(90deg,var(--rose-l),var(--gold-l),var(--rose-l));border-radius:10px;padding:8px 20px;text-align:center;font-size:13px;font-weight:700;color:var(--rose);margin-bottom:20px;letter-spacing:3px">
+    🎬 舞台 &amp; 新人進場方向
+  </div>
+  <div class="seating-tables" id="seating-area"></div>
+  <div style="background:linear-gradient(90deg,var(--green-l),var(--blue-l),var(--green-l));border-radius:10px;padding:8px 20px;text-align:center;font-size:12px;font-weight:600;color:var(--green);margin-top:20px;letter-spacing:2px">
+    🚪 賓客入口
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- MODALS -->
+<div class="ov" id="modal-ov" onclick="closeOv(event)">
+<div class="modal" id="modal-box">
+  <h3 id="m-title">新增</h3>
+  <div id="m-body"></div>
+  <div class="ma">
+    <button class="btn bgh" onclick="closeModal()">取消</button>
+    <button class="btn bp" id="m-save" onclick="saveModal()">儲存</button>
+  </div>
+</div>
+</div>
+
+<div class="ov" id="detail-modal-ov" onclick="closeDetailModal(event)">
+<div class="modal" style="width:480px">
+  <h3 id="dm-title">賓客回覆詳情</h3>
+  <div id="dm-body"></div>
+  <div class="ma">
+    <button class="btn bgh" onclick="closeDetailModalDirect()">關閉</button>
+  </div>
+</div>
+</div>
+
+<div class="ov" id="seat-modal-ov" onclick="closeSeatModal(event)">
+<div class="modal" style="width:400px">
+  <h3 id="sm-title">指派座位</h3>
+  <div id="sm-body"></div>
+  <div class="ma">
+    <button class="btn bd bsm" onclick="clearSeat()">🗑 清除此座位</button>
+    <button class="btn bgh" onclick="closeSeatModalDirect()">取消</button>
+    <button class="btn bb" onclick="saveSeat()">✅ 確認指派</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ═══ Storage ════════════════════════════════════════════════════════
+const LS = k => { try { return JSON.parse(localStorage.getItem('w2_'+k)) } catch { return null } };
+const SS = (k,v) => localStorage.setItem('w2_'+k, JSON.stringify(v));
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2) }
+function fmt(n) { return Number(n).toLocaleString('zh-TW') }
+function fmtD(d) { if(!d) return '—'; const x=new Date(d); return `${x.getFullYear()}/${String(x.getMonth()+1).padStart(2,'0')}/${String(x.getDate()).padStart(2,'0')}` }
+function daysTil(d) { if(!d) return null; return Math.ceil((new Date(d)-new Date())/86400000) }
+function dcls(d) { const n=daysTil(d); if(n===null) return ''; if(n<0) return 'do'; if(n<=21) return 'ds'; return '' }
+function dlabel(d) {
+  if(!d) return '—';
+  const n=daysTil(d);
+  if(n===null) return fmtD(d);
+  if(n<0) return fmtD(d)+' ⚠️已逾期';
+  if(n===0) return fmtD(d)+' ← 今天！';
+  if(n<=21) return fmtD(d)+` (剩${n}天)`;
+  return fmtD(d);
+}
+
+// ═══ Data ════════════════════════════════════════════════════════════
+let todos   = LS('todos')   || getDefaultTodos();
+let budgets = LS('budgets') || getDefaultBudgets();
+let guests  = LS('guests')  || [];
+let timelines = LS('tl')    || getDefaultTimeline();
+let seatData  = LS('seats') || null;
+let seatsPerSide = LS('sps') || 24;
+
+let editId=null, curModal=null, curSeatKey=null;
+let flt={todo:'all',bgt:'all',guest:'all'};
+
+if(!seatData) seatData = initSeats(seatsPerSide);
+
+// ═══ Default Todos ═══════════════════════════════════════════════════
+function getDefaultTodos() {
+  const d=(m,day)=>`2026-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  return [
+    // ── 已完成（婚紗拍攝）
+    {id:uid(),title:'婚紗拍攝：路上婚紗',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'婚紗拍攝：鮮花',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'婚紗拍攝：美髮',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'婚紗拍攝：婚鞋',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'婚紗拍攝：道具採購',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'婚紗拍攝：婚紗美甲',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    // ── 已完成（水下婚紗）
+    {id:uid(),title:'水下婚紗拍攝',category:'婚紗攝影',status:'done',deadline:'',note:'廠商：嘟嘟'},
+    {id:uid(),title:'水下婚紗衣服',category:'婚紗攝影',status:'done',deadline:'',note:'廠商：浪漫一生'},
+    {id:uid(),title:'買水下花',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'綠島衣服',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    {id:uid(),title:'街拍（水下）',category:'婚紗攝影',status:'done',deadline:'',note:''},
+    // ── 已預約
+    {id:uid(),title:'場地預約',category:'場地/餐飲',status:'booked',deadline:d(9,1),note:'Chalet V，訂金已付'},
+    {id:uid(),title:'婚紗廠商確認',category:'婚紗/禮服',status:'booked',deadline:d(8,31),note:'蒂米琪C，三套禮服'},
+    {id:uid(),title:'花藝 / 背板',category:'花藝/布置',status:'booked',deadline:d(10,1),note:'訂金 NT$20,000 已付，尾款待付'},
+    {id:uid(),title:'婚顧（成家婚顧）',category:'主持人&婚顧',status:'booked',deadline:d(10,1),note:'證婚場合，費用已付'},
+    {id:uid(),title:'新秘預約（Teresa）',category:'新娘秘書',status:'booked',deadline:d(11,1),note:'試妝待安排'},
+    {id:uid(),title:'主持人預約（卡蜜拉）',category:'主持人&婚顧',status:'booked',deadline:d(11,1),note:'婚禮主持，尾款 NT$20,000 未付'},
+    {id:uid(),title:'婚禮攝影預約（乙謙 2機）',category:'婚禮攝影',status:'booked',deadline:d(10,1),note:'全額 NT$58,000 尚未付款'},
+    // ── 未開始
+    {id:uid(),title:'婚鞋採購',category:'婚紗/禮服',status:'pending',deadline:d(9,30),note:''},
+    {id:uid(),title:'出國街拍',category:'婚紗攝影',status:'pending',deadline:'',note:''},
+    {id:uid(),title:'喜餅訂製',category:'喜餅',status:'pending',deadline:d(10,15),note:'預估 NT$120,000'},
+    {id:uid(),title:'婚禮小物採購',category:'婚禮小物',status:'pending',deadline:d(10,31),note:'預估 NT$50,000'},
+    {id:uid(),title:'美甲（婚禮當天）',category:'美容',status:'pending',deadline:d(12,10),note:''},
+    {id:uid(),title:'除毛',category:'美容',status:'pending',deadline:d(11,30),note:''},
+    {id:uid(),title:'染髮',category:'美容',status:'pending',deadline:d(11,15),note:''},
+    {id:uid(),title:'頭髮整理',category:'美容',status:'pending',deadline:d(12,12),note:''},
+    {id:uid(),title:'牙齒美白/檢查',category:'美容',status:'pending',deadline:d(9,30),note:''},
+    // ── 原有（保留）
+    {id:uid(),title:'確認婚宴場地細節與菜色',category:'場地/餐飲',status:'booked',deadline:d(9,15),note:'半自助 180 人，確認桌數、動線'},
+    {id:uid(),title:'婚攝勘景與拍攝規劃',category:'婚禮攝影',status:'booked',deadline:d(10,15),note:'[乙謙]'},
+    {id:uid(),title:'迎娶禮服 / 敬酒服確認',category:'婚紗/禮服',status:'booked',deadline:d(9,15),note:'三套換裝（含晚禮服）'},
+    {id:uid(),title:'與主持人討論流程腳本',category:'主持人&婚顧',status:'pending',deadline:d(11,15),note:''},
+    {id:uid(),title:'新娘秘書試妝',category:'新娘秘書',status:'pending',deadline:d(11,1),note:'[Teresa]'},
+    {id:uid(),title:'設計喜帖',category:'喜帖',status:'pending',deadline:d(9,15),note:''},
+    {id:uid(),title:'寄送喜帖',category:'喜帖',status:'pending',deadline:d(10,15),note:'婚禮前 8 週寄出'},
+    {id:uid(),title:'辦理結婚登記',category:'法律文件',status:'pending',deadline:d(12,14),note:'婚禮隔天辦理'},
+    {id:uid(),title:'確認座位表',category:'其他',status:'pending',deadline:d(11,30),note:''},
+    {id:uid(),title:'規劃婚禮背景音樂清單',category:'其他',status:'pending',deadline:d(11,15),note:''},
+    {id:uid(),title:'婚禮前一天行前確認',category:'其他',status:'pending',deadline:d(12,12),note:'與婚攝、主持人、場地確認'},
+    {id:uid(),title:'確認花藝合約與尾款時間',category:'花藝/布置',status:'booked',deadline:d(11,1),note:'尾款 NT$80,000'},
+  ];
+}
+
+// ═══ Default Budget ══════════════════════════════════════════════════
+function getDefaultBudgets() {
+  const b=(cat,title,vendor,r,i,u,ir,ii,note)=>({id:uid(),category:cat,title,vendor:vendor||'',paidRandy:r||0,paidIsa:i||0,unpaid:u||0,incomeRandy:ir||0,incomeIsa:ii||0,note:note||''});
+  return [
+    b('求婚','求婚戒','VC&A',280500,0,0),
+    b('求婚','求婚包場','日翼',12562,0,0),
+    b('求婚','求婚花','',3400,0,0),
+    b('求婚','求婚道具','',470,0,0),
+    b('習俗','新娘金飾','',360000,0,0,0,360000,'Randy 支出、Isa 收入（新娘金飾）'),
+    b('習俗','新娘聘金','',260000,0,0,0,260000,'Randy 支出、Isa 收入（聘金）'),
+    b('習俗','新郎戒指','HW',0,198000,0),
+    b('習俗','新郎金飾','',0,290000,0,290000,0,'Isa 支出、Randy 收入（新郎金飾）'),
+    b('習俗','對戒','Acredo',110138,0,0),
+    b('場地','場地訂金','Chalet V',120000,0,0),
+    b('場地','場地尾款','Chalet V',0,0,480000),
+    b('宴客婚紗','婚紗三套','蒂米琪C',76800,0,0),
+    b('宴客婚紗','婚紗加價升等','',80000,0,0),
+    b('宴客婚紗','婚紗加價升等（第二次）','',0,85000,0),
+    b('宴客婚紗','婚紗加價升等（第三次）','',7000,0,0),
+    b('宴客婚紗','主婚人婚紗','',0,0,36000),
+    b('宴客婚紗','新郎西裝','凡登',110100,0,0),
+    b('宴客婚紗','新郎皮鞋','',5000,0,0),
+    b('宴客婚紗','主婚人西裝','',0,0,10000),
+    b('婚紗攝影','攝影方案','乙謙',96800,0,0),
+    b('婚紗攝影','婚紗升級','W Bridal',7000,0,0),
+    b('婚紗攝影','印刷物','',0,0,0),
+    b('婚紗攝影','加購照片 5p','',5000,0,0),
+    b('婚紗攝影','道具費用','',1500,3000,0,0,0,'Randy NT$1,500 + Isa NT$3,000'),
+    b('婚紗攝影','租車','',5200,0,0),
+    b('婚禮攝影','拍照（2機）','乙謙',29500,0,29500,0,0,'已付一半，尾款 NT$29,500 未付'),
+    b('水下婚紗','方案價','嘟嘟',119800,0,0),
+    b('水下婚紗','服裝','浪漫一生',19550,0,0),
+    b('新娘秘書','新娘妝髮','Teresa',10000,0,13800,0,0,'尾款 NT$13,800 未付'),
+    b('主持人&婚顧','證婚','成家婚顧',26001,0,0),
+    b('主持人&婚顧','婚禮','卡蜜拉',0,0,20000),
+    b('喜餅','But 訂金','',15000,0,120000),
+    b('花藝','訂金','',20000,0,0),
+    b('花藝','尾款','',0,0,80000),
+    b('婚禮小物','婚禮小物','',0,0,50000),
+    b('小幫手','小幫手費用','',0,0,30000),
+  ];
+}
+
+// ═══ Default Timeline ════════════════════════════════════════════════
+function getDefaultTimeline() {
+  const t=(time,title,note)=>({id:uid(),time,title,note:note||''});
+  return [
+    t('06:00','新娘開始梳化','新娘秘書到場，化妝造型'),
+    t('09:00','迎娶車隊出發','確認花車裝飾完成'),
+    t('09:30','迎娶儀式',''),
+    t('10:30','結婚典禮/證婚',''),
+    t('11:30','賓客入場/迎賓','新人站門口迎賓'),
+    t('12:00','宴客開始',''),
+    t('12:10','新人進場',''),
+    t('12:20','致詞時間',''),
+    t('12:30','交換誓言/戒指',''),
+    t('12:45','切蛋糕儀式',''),
+    t('13:00','新人巡桌乾杯',''),
+    t('13:30','換裝（敬酒服）',''),
+    t('14:30','送客',''),
+  ];
+}
+
+// ═══ Seat Init ════════════════════════════════════════════════════════
+function initSeats(sps) {
+  sps = parseInt(sps)||24;
+  const d={};
+  for(let t=1;t<=4;t++) {
+    d[t]={A:Array(sps).fill(null),B:Array(sps).fill(null)};
+  }
+  return d;
+}
+
+// ═══ Countdown ═══════════════════════════════════════════════════════
+function updateCountdown() {
+  const days=Math.ceil((new Date('2026-12-13')-new Date())/86400000);
+  document.getElementById('cd').textContent=days>0?days:'🎉';
+}
+updateCountdown();
+
+// ═══ Tab ══════════════════════════════════════════════════════════════
+function switchTab(tab,btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('act'));
+  document.getElementById('panel-'+tab).classList.add('act');
+  btn.classList.add('act');
+  if(tab==='gantt') renderGantt();
+  if(tab==='seat') renderSeating();
+}
+
+// ═══ Dashboard ═══════════════════════════════════════════════════════
+function updateDash() {
+  const nd=todos.filter(t=>t.status!=='done').length;
+  const dn=todos.filter(t=>t.status==='done').length;
+  const pct=todos.length?Math.round(dn/todos.length*100):0;
+  document.getElementById('st-todo').textContent=nd;
+  document.getElementById('tp').style.width=pct+'%';
+
+  const totalR=budgets.reduce((s,b)=>s+(parseFloat(b.paidRandy)||0),0);
+  const totalI=budgets.reduce((s,b)=>s+(parseFloat(b.paidIsa)||0),0);
+  const totalU=budgets.reduce((s,b)=>s+(parseFloat(b.unpaid)||0),0);
+  const totalAll=totalR+totalI+totalU;
+  document.getElementById('st-bgt').textContent='NT$'+fmt(totalR+totalI);
+  document.getElementById('bp-fill').style.width=totalAll?Math.min(Math.round((totalR+totalI)/totalAll*100),100)+'%':'0%';
+  document.getElementById('b-total').textContent='NT$'+fmt(totalAll);
+  document.getElementById('b-randy').textContent='NT$'+fmt(totalR);
+  document.getElementById('b-isa').textContent='NT$'+fmt(totalI);
+  document.getElementById('b-unpaid').textContent='NT$'+fmt(totalU);
+  const totalIncR=budgets.reduce((s,b)=>s+(parseFloat(b.incomeRandy)||0),0);
+  const totalIncI=budgets.reduce((s,b)=>s+(parseFloat(b.incomeIsa)||0),0);
+  document.getElementById('b-incR').textContent='NT$'+fmt(totalIncR);
+  document.getElementById('b-incI').textContent='NT$'+fmt(totalIncI);
+
+  const conf=guests.filter(g=>g.rsvp==='confirmed');
+  const heads=conf.reduce((s,g)=>s+(parseInt(g.count)||1),0);
+  document.getElementById('st-guest').textContent=heads;
+  document.getElementById('g-total').textContent=guests.length;
+  document.getElementById('g-conf').textContent=conf.length;
+  document.getElementById('g-pend').textContent=guests.filter(g=>g.rsvp==='pending').length;
+  document.getElementById('g-dec').textContent=guests.filter(g=>g.rsvp==='decline').length;
+  document.getElementById('g-heads').textContent=heads;
+
+  // Seats
+  let taken=0,total=0;
+  Object.values(seatData).forEach(t=>{
+    ['A','B'].forEach(s=>{ total+=t[s].length; taken+=t[s].filter(Boolean).length; });
+  });
+  document.getElementById('st-seats').textContent=taken;
+  const sumEl=document.getElementById('seat-summary');
+  if(sumEl) sumEl.textContent=`已指派 ${taken} / ${total} 個座位`;
+}
+
+// ═══ Filter ═══════════════════════════════════════════════════════════
+function setFlt(type,val,btn) {
+  flt[type]=val;
+  const cont=btn.closest('.filters');
+  cont.querySelectorAll('.fb').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  if(type==='todo') renderTodo();
+  if(type==='bgt') renderBudget();
+  if(type==='guest') renderGuest();
+}
+
+// ═══ TODO Render ══════════════════════════════════════════════════════
+function renderTodo(search='') {
+  const s=search.toLowerCase();
+  const ST={pending:'bp-b',booked:'bb-b',done:'bg-b'};
+  const SL={pending:'未開始',booked:'已預約',done:'已完成'};
+  let list=todos.filter(t=>{
+    if(s && !t.title.toLowerCase().includes(s) && !t.category.toLowerCase().includes(s)) return false;
+    if(flt.todo==='all') return true;
+    if(flt.todo==='urgent') return t.status!=='done' && t.deadline && daysTil(t.deadline)<=21;
+    return t.status===flt.todo;
+  });
+  list.sort((a,b)=>{
+    if(a.status==='done'&&b.status!=='done') return 1;
+    if(a.status!=='done'&&b.status==='done') return -1;
+    if(!a.deadline) return 1; if(!b.deadline) return -1;
+    return new Date(a.deadline)-new Date(b.deadline);
+  });
+  const tb=document.getElementById('todo-body');
+  if(!list.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="ei">✅</div><p>沒有符合的項目</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(t=>`<tr>
+    <td><input type="checkbox" ${t.status==='done'?'checked':''} onchange="cycleTodo('${t.id}',this)"></td>
+    <td style="font-weight:600;${t.status==='done'?'text-decoration:line-through;color:var(--gray)':''}">${t.title}</td>
+    <td><span class="pill">${t.category}</span></td>
+    <td class="${dcls(t.deadline)}">${dlabel(t.deadline)}</td>
+    <td><span class="badge ${ST[t.status]||'bp-b'}">${SL[t.status]||'未開始'}</span></td>
+    <td style="color:var(--gray);font-size:12px">${t.note||'—'}</td>
+    <td>
+      <button class="btn bsm bgh" onclick="editItem('todo','${t.id}')">編輯</button>
+      <button class="btn bsm bd" onclick="delItem('todo','${t.id}')">刪</button>
+    </td>
+  </tr>`).join('');
+}
+
+function cycleTodo(id,cb) {
+  const t=todos.find(x=>x.id===id);
+  if(!t) return;
+  if(cb.checked) t.status='done';
+  else t.status='pending';
+  SS('todos',todos); renderTodo(); updateDash();
+}
+
+// ═══ GANTT Render ════════════════════════════════════════════════════
+function renderGantt() {
+  const start=new Date('2026-05-25'); // first Monday
+  const end=new Date('2026-12-13');
+  const weeks=[];
+  let cur=new Date(start);
+  while(cur<=end){
+    weeks.push(new Date(cur));
+    cur.setDate(cur.getDate()+7);
+  }
+  const now=new Date();
+
+  const withDL=todos.filter(t=>t.deadline);
+  withDL.sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+
+  const ST_CLR={done:'gantt-cell-done',booked:'gantt-cell-booked',pending:'gantt-cell-pending'};
+
+  let html=`<thead><tr><th class="row-label">項目</th>`;
+  weeks.forEach((w,i)=>{
+    const mo=String(w.getMonth()+1).padStart(2,'0');
+    const da=String(w.getDate()).padStart(2,'0');
+    const isNear=w<=new Date(now.getTime()+21*86400000)&&w>=now;
+    html+=`<th class="wk-head${isNear?' near':''}">${mo}/${da}</th>`;
+  });
+  html+=`</tr></thead><tbody>`;
+
+  withDL.forEach(t=>{
+    const dl=new Date(t.deadline);
+    const dlWeek=weeks.findIndex(w=>{
+      const nx=new Date(w); nx.setDate(nx.getDate()+7);
+      return dl>=w && dl<nx;
+    });
+    html+=`<tr><td class="row-label">${t.title}</td>`;
+    weeks.forEach((w,i)=>{
+      const isToday=w<=now&&new Date(w.getTime()+7*86400000)>now;
+      let cell='';
+      if(i===dlWeek) cell=`<div class="${ST_CLR[t.status]||'gantt-cell-pending'}" style="height:18px;border-radius:4px"></div>`;
+      html+=`<td style="${isToday?'background:#f0f9ff':''}">${cell}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody>`;
+  document.getElementById('gantt-table').innerHTML=html;
+}
+
+// ═══ BUDGET Render ═══════════════════════════════════════════════════
+function renderBudget() {
+  const PAY_STATUS=(r,i,u)=>{
+    const p=r+i; if(!p&&u>0) return {cls:'bp-b',lbl:'未付款'};
+    if(u>0) return {cls:'bb-b',lbl:'部分付款'};
+    return {cls:'bg-b',lbl:'已付清'};
+  };
+  let list=budgets.filter(b=>{
+    const r=parseFloat(b.paidRandy)||0,i=parseFloat(b.paidIsa)||0,u=parseFloat(b.unpaid)||0;
+    const ps=PAY_STATUS(r,i,u);
+    if(flt.bgt==='all') return true;
+    return ps.lbl==={paid:'已付清',partial:'部分付款',unpaid:'未付款'}[flt.bgt];
+  });
+  const tb=document.getElementById('bgt-body');
+  if(!list.length){tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">💰</div><p>沒有符合項目</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(b=>{
+    const r=parseFloat(b.paidRandy)||0,i=parseFloat(b.paidIsa)||0,u=parseFloat(b.unpaid)||0;
+    const incR=parseFloat(b.incomeRandy)||0,incI=parseFloat(b.incomeIsa)||0;
+    const total=r+i+u;
+    const ps=PAY_STATUS(r,i,u);
+    const urg=u>0&&b.note&&b.note.includes('⚠️')?'background:#fffbeb;':b.unpaid>0&&b.note.includes('待付')?'background:#fffbeb;':'';
+    let incomeCell='—';
+    if(incR&&incI) incomeCell=`Randy +NT$${fmt(incR)}<br>Isa +NT$${fmt(incI)}`;
+    else if(incR) incomeCell=`Randy +NT$${fmt(incR)}`;
+    else if(incI) incomeCell=`Isa +NT$${fmt(incI)}`;
+    return `<tr style="${urg}">
+      <td><span class="pill g">${b.category}</span></td>
+      <td style="font-weight:600">${b.title}${b.vendor?`<br><span style="font-size:11px;color:var(--gray)">[${b.vendor}]</span>`:''}      </td>
+      <td>${r?'NT$'+fmt(r):'—'}</td>
+      <td>${i?'NT$'+fmt(i):'—'}</td>
+      <td style="${u?'color:#dc2626;font-weight:600':'color:var(--gray)'}">${u?'NT$'+fmt(u):'—'}</td>
+      <td style="font-size:11px;color:var(--green)">${incomeCell}</td>
+      <td style="font-weight:700">NT$${fmt(total)}</td>
+      <td><span class="badge ${ps.cls}">${ps.lbl}</span></td>
+      <td style="font-size:11px;color:var(--gray)">${b.note||'—'}</td>
+      <td>
+        <button class="btn bsm bgh" onclick="editItem('budget','${b.id}')">編輯</button>
+        <button class="btn bsm bd" onclick="delItem('budget','${b.id}')">刪</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function resetBudgetDefaults() {
+  if(!confirm('這會用最新的預算範本覆蓋目前畫面上的所有預算項目（含你手動編輯過的內容），確定要重設嗎？')) return;
+  budgets = getDefaultBudgets();
+  SS('budgets', budgets);
+  renderBudget(); updateDash();
+  alert('✅ 已載入最新預算範本');
+}
+
+// ═══ GUEST Render ════════════════════════════════════════════════════
+function renderGuest(search='') {
+  const s=search.toLowerCase();
+  const RL={confirmed:'bg-b',pending:'bp-b',decline:'ur-b'};
+  const RLB={confirmed:'確認出席',pending:'待確認',decline:'無法出席'};
+  const SI={groom:'新郎方',bride:'新娘方'};
+  let list=guests.filter(g=>{
+    if(s&&!g.name.toLowerCase().includes(s)&&!(g.relation||'').toLowerCase().includes(s)) return false;
+    if(flt.guest==='all') return true;
+    if(flt.guest==='groom') return g.side==='groom';
+    if(flt.guest==='bride') return g.side==='bride';
+    if(flt.guest==='confirmed') return g.rsvp==='confirmed';
+    if(flt.guest==='pending') return g.rsvp==='pending';
+    return true;
+  });
+  const tb=document.getElementById('guest-body');
+  if(!list.length){tb.innerHTML='<tr><td colspan="12"><div class="empty"><div class="ei">👥</div><p>尚未新增賓客</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(g=>{
+    const ca=g.ceremonyAttend||'';
+    const attendMode = /僅參加午宴/.test(ca) ? '僅午宴'
+                      : /會參加/.test(ca) ? '證婚+午宴'
+                      : (ca || '—');
+    const mealParts=[];
+    if(g.mainCourse) mealParts.push(`主餐:${g.mainCourse}`);
+    if(g.dietary) mealParts.push(`⚠️${g.dietary}`);
+    const mealCell = mealParts.length ? mealParts.join('｜') : '—';
+    let childCell='—';
+    if(g.hasChildren==='是' || (parseInt(g.childCount)||0)>0) {
+      const parts=[];
+      if(g.child0to80) parts.push(`80↓:${g.child0to80}`);
+      if(g.child80to100) parts.push(`80-100:${g.child80to100}`);
+      if(g.child100to140) parts.push(`100-140:${g.child100to140}`);
+      childCell = `${g.childCount||'?'}人${parts.length?'（'+parts.join(' ')+'）':''}`;
+    }
+    return `<tr>
+    <td style="font-weight:600">${g.name}</td>
+    <td style="font-size:12px">${g.relation||'—'}</td>
+    <td><span class="pill ${g.side==='groom'?'b':'gr'}">${SI[g.side]||'—'}</span></td>
+    <td><span class="badge ${RL[g.rsvp]||'bp-b'}">${RLB[g.rsvp]||'待確認'}</span></td>
+    <td style="font-size:12px;color:var(--gray)">${attendMode}</td>
+    <td style="text-align:center">${g.count||1}</td>
+    <td style="font-size:12px;color:var(--gray)">${mealCell}</td>
+    <td style="font-size:12px;color:var(--gray)">${childCell}</td>
+    <td>${g.seat||g.table||'—'}</td>
+    <td style="font-size:12px;color:var(--gray)">${g.contact||g.email||'—'}</td>
+    <td style="font-size:12px;color:var(--gray)">${g.note||'—'}</td>
+    <td>
+      ${g.formTs?`<button class="btn bsm bgh" onclick="viewGuestDetail('${g.id}')" title="查看表單完整回覆">📋</button>`:''}
+      <button class="btn bsm bgh" onclick="editItem('guest','${g.id}')">編輯</button>
+      <button class="btn bsm bd" onclick="delItem('guest','${g.id}')">刪</button>
+    </td>
+  </tr>`;
+  }).join('');
+}
+
+// ═══ 賓客詳情（Google 表單完整回覆）═══════════════════════════════════
+function viewGuestDetail(id) {
+  const g = guests.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('dm-title').textContent = `${g.name} 的表單回覆`;
+  const RSVP_LABEL = { confirmed: '✅ 可以出席', decline: '❌ 無法出席', pending: '⏳ 待確認' };
+  const rows = [
+    ['Email', g.email],
+    ['與新人的關係', g.relation],
+    ['是否能出席婚禮', RSVP_LABEL[g.rsvp] || g.rsvp],
+    ['證婚儀式是否參加', g.ceremonyAttend],
+    ['證婚儀式出席人數', g.ceremonyCount],
+    ['午宴總出席人數', g.count],
+    ['主餐選擇', g.mainCourse],
+    ['飲食禁忌', g.dietary],
+    ['是否有兒童', g.hasChildren],
+    ['兒童數量', g.childCount],
+    ['幼童（80cm以下）', g.child0to80],
+    ['幼童（80-100cm）', g.child80to100],
+    ['兒童（100-140cm）', g.child100to140],
+    ['兒童座椅/餐具需求', g.childSeatNeed],
+    ['是否參加 After Party', g.afterParty],
+    ['祝福話語', g.blessing],
+    ['想聽的婚禮歌單', g.songRequest],
+    ['表單填寫時間', g.formTs],
+  ];
+  document.getElementById('dm-body').innerHTML = rows.map(([k, v]) =>
+    `<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="width:130px;flex-shrink:0;color:var(--gray);font-weight:600;font-size:12px">${k}</div>
+      <div style="flex:1;font-size:13px;white-space:pre-wrap">${(v===undefined||v===null||v==='')?'—':v}</div>
+    </div>`
+  ).join('');
+  document.getElementById('detail-modal-ov').classList.add('open');
+}
+function closeDetailModal(e) { if (e && e.target !== document.getElementById('detail-modal-ov')) return; document.getElementById('detail-modal-ov').classList.remove('open'); }
+function closeDetailModalDirect() { document.getElementById('detail-modal-ov').classList.remove('open'); }
+
+// ═══ SEATING ════════════════════════════════════════════════════════
+function initSeats(sps) {
+  sps=parseInt(sps)||24;
+  const d={};
+  for(let t=1;t<=4;t++) d[t]={A:Array(sps).fill(null),B:Array(sps).fill(null)};
+  return d;
+}
+
+function resizeSeats(val) {
+  const sps=parseInt(val)||24;
+  seatsPerSide=sps;
+  SS('sps',sps);
+  for(let t=1;t<=4;t++) {
+    ['A','B'].forEach(s=>{
+      const arr=seatData[t][s];
+      if(arr.length<sps) { for(let i=arr.length;i<sps;i++) arr.push(null); }
+      else seatData[t][s]=arr.slice(0,sps);
+    });
+  }
+  SS('seats',seatData);
+  renderSeating(); updateDash();
+}
+
+function renderSeating() {
+  const sps = seatData[1].A.length;
+  document.getElementById('seats-per-side').value = sps;
+  document.getElementById('seats-count-label').textContent = `每排 ${sps} 座 × 2 側 × 4 排 = ${sps*8} 座`;
+  const container = document.getElementById('seating-area');
+  container.innerHTML = '';
+  const TABLE_NAMES = ['第一排','第二排','第三排','第四排'];
+
+  for (let t = 1; t <= 4; t++) {
+    const col = document.createElement('div');
+    col.className = 'seat-table-col';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'seat-col-header';
+    hdr.textContent = TABLE_NAMES[t-1];
+    col.appendChild(hdr);
+
+    // Column sub-labels
+    const sub = document.createElement('div');
+    sub.className = 'seat-col-subheader';
+    sub.innerHTML = '<span>← 左</span><span></span><span>右 →</span>';
+    col.appendChild(sub);
+
+    // Seat pairs (A side | spine | B side)
+    const sps2 = seatData[t].A.length;
+    for (let idx = 0; idx < sps2; idx++) {
+      const pair = document.createElement('div');
+      pair.className = 'seat-pair';
+
+      const seatA = createSeatEl(t, 'A', idx, seatData[t].A[idx]);
+      const spine = document.createElement('div');
+      spine.className = 'seat-spine';
+      spine.title = '長桌';
+      const seatB = createSeatEl(t, 'B', idx, seatData[t].B[idx]);
+
+      pair.appendChild(seatA);
+      pair.appendChild(spine);
+      pair.appendChild(seatB);
+      col.appendChild(pair);
+    }
+    container.appendChild(col);
+  }
+  updateDash();
+}
+
+function createSeatEl(t, side, idx, gid) {
+  const s = document.createElement('div');
+  s.className = 'seat' + (gid ? ' taken' : '');
+  const g = gid ? guests.find(x => x.id === gid) : null;
+  const name = g ? g.name : '';
+  const num = idx + 1;
+
+  // Content: show seat number or abbreviated name
+  if (gid && name) {
+    const short = name.length <= 2 ? name : name.slice(0, 2);
+    s.innerHTML = `<span style="font-size:8px;line-height:1;text-align:center">${short}</span>`;
+  } else {
+    s.innerHTML = `<span>${num}</span>`;
+  }
+
+  // Tooltip
+  const tip = document.createElement('div');
+  tip.className = 'seat-tooltip';
+  tip.textContent = gid ? `${name} (${['一','二','三','四'][t-1]}排${side==='A'?'左':'右'}-${num})` : `${TABLE_NAMES_SHORT[t-1]}排${side==='A'?'左':'右'}側 ${num} 號（空位）`;
+  s.appendChild(tip);
+
+  s.onclick = () => openSeatModal(t, side, idx, gid);
+  return s;
+}
+const TABLE_NAMES_SHORT = ['一','二','三','四'];
+
+function getGuestName(gid) {
+  const g=guests.find(x=>x.id===gid);
+  return g?g.name:'(已刪除)';
+}
+
+let seatCtx={t:null,s:null,idx:null};
+
+// Count how many seats a guest currently occupies
+function getGuestSeatCount(gid) {
+  let n=0;
+  Object.values(seatData).forEach(tbl=>['A','B'].forEach(side=>{ n+=tbl[side].filter(x=>x===gid).length; }));
+  return n;
+}
+
+function openSeatModal(t,side,idx,currentGid) {
+  seatCtx={t,s:side,idx};
+  const sideLabel=side==='A'?'左側':'右側';
+  document.getElementById('sm-title').textContent=`第${TABLE_NAMES_SHORT[t-1]}排 ${sideLabel} 第 ${idx+1} 號座位`;
+
+  // Build guest options with seat-count info
+  const opts=guests.map(g=>{
+    const assigned=getGuestSeatCount(g.id);
+    const need=parseInt(g.count)||1;
+    const full=assigned>=need && g.id!==currentGid;
+    const badge=`${assigned}/${need}座`;
+    const label=`${g.name}${g.relation?' ('+g.relation+')':''} — ${badge}${full?' ✓滿':''}`;
+    return `<option value="${g.id}" ${g.id===currentGid?'selected':''} ${full?'style="color:#aaa"':''}>${label}</option>`;
+  }).join('');
+
+  const curG=currentGid?guests.find(x=>x.id===currentGid):null;
+  document.getElementById('sm-body').innerHTML=`
+    <div class="fg">
+      <label>選擇賓客（括號內為已指派 / 需求座位數）</label>
+      <select id="seat-guest-sel" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+        <option value="">— 空位（不指派）—</option>
+        ${opts}
+      </select>
+    </div>
+    ${curG?`<div style="font-size:12px;color:var(--blue);margin-top:6px;padding:8px;background:var(--blue-l);border-radius:6px">
+      目前：<strong>${curG.name}</strong>（共 ${curG.count||1} 人，已指派 ${getGuestSeatCount(curG.id)} 個座位）
+    </div>`:''}
+    <div id="seat-warn" style="font-size:12px;color:#dc2626;margin-top:6px;display:none"></div>
+  `;
+
+  // Live warning when selecting a fully-seated guest
+  document.getElementById('seat-guest-sel').onchange=function() {
+    const gid=this.value;
+    if(!gid){document.getElementById('seat-warn').style.display='none';return;}
+    const g=guests.find(x=>x.id===gid);
+    if(!g) return;
+    const assigned=getGuestSeatCount(gid);
+    const need=parseInt(g.count)||1;
+    const warn=document.getElementById('seat-warn');
+    if(assigned>=need && gid!==currentGid) {
+      warn.style.display='block';
+      warn.textContent=`⚠️ ${g.name} 已指派 ${assigned}/${need} 個座位（人數已滿），確認仍要新增？`;
+    } else {
+      warn.style.display='none';
+    }
+  };
+
+  document.getElementById('seat-modal-ov').classList.add('open');
+}
+
+function saveSeat() {
+  const sel=document.getElementById('seat-guest-sel').value;
+  // Remove old occupant of THIS seat only (not all seats of that guest)
+  const old=seatData[seatCtx.t][seatCtx.s][seatCtx.idx];
+  seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=sel||null;
+  // Update seat label on guest record
+  if(sel) {
+    const g=guests.find(x=>x.id===sel);
+    if(g) {
+      // Collect all seat labels for this guest
+      const labels=[];
+      for(let t=1;t<=4;t++) ['A','B'].forEach(s=>{
+        seatData[t][s].forEach((gid,i)=>{ if(gid===sel) labels.push(`第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`); });
+      });
+      g.seat=labels.join('、');
+      SS('guests',guests);
+    }
+  }
+  if(old && old!==sel) {
+    // Update old guest's seat label
+    const og=guests.find(x=>x.id===old);
+    if(og) {
+      const labels=[];
+      for(let t=1;t<=4;t++) ['A','B'].forEach(s=>{
+        seatData[t][s].forEach((gid,i)=>{ if(gid===old) labels.push(`第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`); });
+      });
+      og.seat=labels.join('、');
+      SS('guests',guests);
+    }
+  }
+  SS('seats',seatData);
+  closeSeatModal(); renderSeating();
+}
+
+function clearSeat() {
+  const cur=seatData[seatCtx.t][seatCtx.s][seatCtx.idx];
+  seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=null;
+  if(cur) {
+    const g=guests.find(x=>x.id===cur);
+    if(g) {
+      const labels=[];
+      for(let t=1;t<=4;t++) ['A','B'].forEach(s=>{
+        seatData[t][s].forEach((gid,i)=>{ if(gid===cur) labels.push(`第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`); });
+      });
+      g.seat=labels.join('、');
+      SS('guests',guests);
+    }
+  }
+  SS('seats',seatData); closeSeatModal(); renderSeating();
+}
+
+function clearAllSeats() {
+  if(!confirm('確定要清除所有座位安排嗎？')) return;
+  Object.values(seatData).forEach(t=>['A','B'].forEach(s=>t[s].fill(null)));
+  guests.forEach(g=>{g.seat=''}); SS('guests',guests);
+  SS('seats',seatData); renderSeating();
+}
+
+function closeSeatModal(e) {
+  if(e&&e.target!==document.getElementById('seat-modal-ov')) return;
+  document.getElementById('seat-modal-ov').classList.remove('open');
+}
+function closeSeatModalDirect() { document.getElementById('seat-modal-ov').classList.remove('open'); }
+
+// ═══ Modal ════════════════════════════════════════════════════════════
+const CATEGORIES_TODO=['場地/餐飲','婚紗/禮服','婚紗攝影','婚禮攝影','花藝/布置','主持人&婚顧','新娘秘書','喜帖','美容','婚禮小物','法律文件','其他'];
+const CATEGORIES_BGT=['求婚','習俗','場地','宴客婚紗','婚紗攝影','婚禮攝影','水下婚紗','新娘秘書','主持人&婚顧','喜餅','花藝','婚禮小物','小幫手','其他'];
+
+function openModal(type,item=null) {
+  curModal=type; editId=item?item.id:null;
+  const saveBtn=document.getElementById('m-save');
+  if(type==='todo') {
+    document.getElementById('m-title').textContent=item?'編輯待辦項目':'新增待辦項目';
+    saveBtn.className='btn bp';
+    document.getElementById('m-body').innerHTML=`
+      <div class="fg"><label>項目名稱 *</label><input id="f-title" value="${item?.title||''}" placeholder="例：確認場地合約"></div>
+      <div class="frow">
+        <div class="fg"><label>分類</label><select id="f-cat">${CATEGORIES_TODO.map(c=>`<option ${(item?.category||'場地/餐飲')===c?'selected':''}>${c}</option>`).join('')}</select></div>
+        <div class="fg"><label>截止日期</label><input type="date" id="f-dl" value="${item?.deadline||''}"></div>
+      </div>
+      <div class="fg"><label>狀態</label><select id="f-st">
+        <option value="pending" ${(item?.status||'pending')==='pending'?'selected':''}>未開始</option>
+        <option value="booked" ${item?.status==='booked'?'selected':''}>已預約</option>
+        <option value="done" ${item?.status==='done'?'selected':''}>已完成</option>
+      </select></div>
+      <div class="fg"><label>備註</label><textarea id="f-note" rows="2">${item?.note||''}</textarea></div>`;
+  } else if(type==='budget') {
+    document.getElementById('m-title').textContent=item?'編輯預算項目':'新增預算項目';
+    saveBtn.className='btn bg';
+    document.getElementById('m-body').innerHTML=`
+      <div class="frow">
+        <div class="fg"><label>項目名稱 *</label><input id="f-title" value="${item?.title||''}" placeholder="例：場地訂金"></div>
+        <div class="fg"><label>廠商</label><input id="f-vendor" value="${item?.vendor||''}" placeholder="廠商名稱"></div>
+      </div>
+      <div class="fg"><label>分類</label><select id="f-cat">${CATEGORIES_BGT.map(c=>`<option ${(item?.category||'場地')===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="frow">
+        <div class="fg"><label>Randy 付款 (NT$)</label><input type="number" id="f-r" value="${item?.paidRandy||''}" placeholder="0"></div>
+        <div class="fg"><label>Isa 付款 (NT$)</label><input type="number" id="f-i" value="${item?.paidIsa||''}" placeholder="0"></div>
+      </div>
+      <div class="fg"><label>未付款金額 (NT$)</label><input type="number" id="f-u" value="${item?.unpaid||''}" placeholder="0"></div>
+      <div class="frow">
+        <div class="fg"><label>Randy 收到禮金/金飾 (NT$)</label><input type="number" id="f-incR" value="${item?.incomeRandy||''}" placeholder="0"></div>
+        <div class="fg"><label>Isa 收到禮金/金飾 (NT$)</label><input type="number" id="f-incI" value="${item?.incomeIsa||''}" placeholder="0"></div>
+      </div>
+      <div class="fg"><label>備註</label><textarea id="f-note" rows="2">${item?.note||''}</textarea></div>`;
+  } else if(type==='guest') {
+    document.getElementById('m-title').textContent=item?'編輯賓客':'新增賓客';
+    saveBtn.className='btn bb';
+    document.getElementById('m-body').innerHTML=`
+      <div class="frow">
+        <div class="fg"><label>姓名 *</label><input id="f-name" value="${item?.name||''}" placeholder="姓名"></div>
+        <div class="fg"><label>稱謂/關係</label><input id="f-rel" value="${item?.relation||''}" placeholder="例：大學同學"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>邀請方</label><select id="f-side"><option value="groom" ${(item?.side||'groom')==='groom'?'selected':''}>新郎方</option><option value="bride" ${item?.side==='bride'?'selected':''}>新娘方</option></select></div>
+        <div class="fg"><label>出席狀態</label><select id="f-rsvp">
+          <option value="pending" ${(item?.rsvp||'pending')==='pending'?'selected':''}>待確認</option>
+          <option value="confirmed" ${item?.rsvp==='confirmed'?'selected':''}>確認出席</option>
+          <option value="decline" ${item?.rsvp==='decline'?'selected':''}>無法出席</option>
+        </select></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>午宴出席人數</label><input type="number" id="f-count" value="${item?.count||1}" min="1"></div>
+        <div class="fg"><label>聯絡方式</label><input id="f-contact" value="${item?.contact||''}" placeholder="電話/Line"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Email</label><input id="f-email" value="${item?.email||''}" placeholder="Email"></div>
+        <div class="fg"><label>主餐選擇</label><input id="f-main" value="${item?.mainCourse||''}" placeholder="例：牛肉／海鮮"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>證婚儀式是否參加</label><input id="f-cerAttend" value="${item?.ceremonyAttend||''}" placeholder="是／否"></div>
+        <div class="fg"><label>證婚儀式出席人數</label><input type="number" id="f-cerCount" value="${item?.ceremonyCount||''}" min="0"></div>
+      </div>
+      <div class="fg"><label>飲食禁忌</label><input id="f-diet" value="${item?.dietary||''}" placeholder="素食／過敏等"></div>
+      <div class="frow">
+        <div class="fg"><label>是否有兒童</label><input id="f-hasChild" value="${item?.hasChildren||''}" placeholder="是／否"></div>
+        <div class="fg"><label>兒童數量</label><input type="number" id="f-childCount" value="${item?.childCount||''}" min="0"></div>
+      </div>
+      <div class="fg"><label>兒童身高分布（80cm以下／80-100cm／100-140cm）</label>
+        <div style="display:flex;gap:8px">
+          <input type="number" id="f-child080" value="${item?.child0to80||''}" min="0" placeholder="80↓">
+          <input type="number" id="f-child80100" value="${item?.child80to100||''}" min="0" placeholder="80-100">
+          <input type="number" id="f-child100140" value="${item?.child100to140||''}" min="0" placeholder="100-140">
+        </div>
+      </div>
+      <div class="fg"><label>兒童座椅／餐具需求</label><input id="f-childSeat" value="${item?.childSeatNeed||''}"></div>
+      <div class="fg"><label>是否參加 After Party</label><input id="f-afterParty" value="${item?.afterParty||''}" placeholder="是／否"></div>
+      <div class="fg"><label>給新人的祝福話語</label><textarea id="f-blessing" rows="2">${item?.blessing||''}</textarea></div>
+      <div class="fg"><label>想聽的婚禮歌單</label><input id="f-song" value="${item?.songRequest||''}"></div>
+      <div class="fg"><label>備註</label><textarea id="f-note" rows="2">${item?.note||''}</textarea></div>`;
+  }
+  document.getElementById('modal-ov').classList.add('open');
+  setTimeout(()=>{const f=document.querySelector('#m-body input,#m-body select');if(f)f.focus()},80);
+}
+
+function editItem(type,id) {
+  const MAP={todo:todos,budget:budgets,guest:guests};
+  const item=MAP[type].find(x=>x.id===id);
+  if(item) openModal(type,item);
+}
+
+function delItem(type,id) {
+  if(!confirm('確定要刪除嗎？')) return;
+  if(type==='todo'){todos=todos.filter(x=>x.id!==id);SS('todos',todos);renderTodo();}
+  if(type==='budget'){budgets=budgets.filter(x=>x.id!==id);SS('budgets',budgets);renderBudget();}
+  if(type==='guest'){guests=guests.filter(x=>x.id!==id);SS('guests',guests);renderGuest();}
+  updateDash();
+}
+
+function saveModal() {
+  const g=id=>document.getElementById(id);
+  if(curModal==='todo') {
+    const title=g('f-title')?.value?.trim();
+    if(!title) return alert('請填寫項目名稱');
+    const obj={id:editId||uid(),title,category:g('f-cat').value,deadline:g('f-dl').value,status:g('f-st').value,note:g('f-note').value};
+    if(editId){const i=todos.findIndex(x=>x.id===editId);todos[i]=obj;}else todos.push(obj);
+    SS('todos',todos);renderTodo();
+  } else if(curModal==='budget') {
+    const title=g('f-title')?.value?.trim();
+    if(!title) return alert('請填寫項目名稱');
+    const obj={id:editId||uid(),title,category:g('f-cat').value,vendor:g('f-vendor').value,paidRandy:parseFloat(g('f-r').value)||0,paidIsa:parseFloat(g('f-i').value)||0,unpaid:parseFloat(g('f-u').value)||0,incomeRandy:parseFloat(g('f-incR')?.value)||0,incomeIsa:parseFloat(g('f-incI')?.value)||0,note:g('f-note').value};
+    if(editId){const i=budgets.findIndex(x=>x.id===editId);budgets[i]=obj;}else budgets.push(obj);
+    SS('budgets',budgets);renderBudget();
+  } else if(curModal==='guest') {
+    const name=g('f-name')?.value?.trim();
+    if(!name) return alert('請填寫姓名');
+    const obj={
+      id:editId||uid(),name,relation:g('f-rel').value,side:g('f-side').value,rsvp:g('f-rsvp').value,
+      count:parseInt(g('f-count').value)||1,contact:g('f-contact').value,note:g('f-note').value,
+      email:g('f-email')?.value||'',
+      mainCourse:g('f-main')?.value||'',
+      ceremonyAttend:g('f-cerAttend')?.value||'',
+      ceremonyCount:g('f-cerCount')?.value?parseInt(g('f-cerCount').value):'',
+      dietary:g('f-diet')?.value||'',
+      hasChildren:g('f-hasChild')?.value||'',
+      childCount:g('f-childCount')?.value?parseInt(g('f-childCount').value):'',
+      child0to80:g('f-child080')?.value?parseInt(g('f-child080').value):'',
+      child80to100:g('f-child80100')?.value?parseInt(g('f-child80100').value):'',
+      child100to140:g('f-child100140')?.value?parseInt(g('f-child100140').value):'',
+      childSeatNeed:g('f-childSeat')?.value||'',
+      afterParty:g('f-afterParty')?.value||'',
+      blessing:g('f-blessing')?.value||'',
+      songRequest:g('f-song')?.value||'',
+      seat:editId?undefined:'',
+    };
+    if(editId){
+      const i=guests.findIndex(x=>x.id===editId);
+      // 保留原本的 seat 與 formTs（若有），其餘欄位以編輯內容為準
+      guests[i]={...guests[i],...obj,seat:guests[i].seat};
+    } else {
+      obj.seat='';
+      guests.push(obj);
+    }
+    SS('guests',guests);renderGuest();
+  }
+  closeModal(); updateDash();
+}
+
+function closeModal() { document.getElementById('modal-ov').classList.remove('open'); editId=null; curModal=null; }
+function closeOv(e) { if(e.target===document.getElementById('modal-ov')) closeModal(); }
+
+// ═══ Google Sheet 串接 ════════════════════════════════════════════════
+function saveGSheetUrl(val) {
+  localStorage.setItem('w2_gsheetUrl', val.trim());
+}
+
+function getGSheetUrl() {
+  return localStorage.getItem('w2_gsheetUrl') || '';
+}
+
+function restoreGSheetUrl() {
+  const saved = getGSheetUrl();
+  const urlEl = document.getElementById('gsheet-url');
+  if (urlEl && saved) urlEl.value = saved;
+}
+
+async function testGSheetConnection() {
+  const url = getGSheetUrl();
+  const statusEl = document.getElementById('gsheet-status');
+  if (!url) {
+    statusEl.textContent = '⚠️ 請先填入網址';
+    statusEl.style.color = '#f59e0b';
+    return;
+  }
+  statusEl.textContent = '⏳ 測試中…';
+  statusEl.style.color = 'var(--gray)';
+  try {
+    const resp = await fetch(url, { redirect: 'follow' });
+    const json = await resp.json();
+    if (json.success !== undefined) {
+      statusEl.textContent = '✅ 連線成功！';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      throw new Error('格式錯誤');
+    }
+  } catch (err) {
+    statusEl.textContent = '❌ 連線失敗，請確認網址與存取設定';
+    statusEl.style.color = '#dc2626';
+  }
+}
+
+// 依「關鍵字」在表單回傳的每一列（物件，key 為 Google 表單的題目文字）中找欄位值。
+// 用關鍵字比對而非完全比對欄位名稱，避免表單題目文字有些微調整（多一個空格、標點）就對不到。
+function findVal(row, keywords) {
+  const keys = Object.keys(row);
+  for (const kw of keywords) {
+    const key = keys.find(k => k.includes(kw));
+    if (key !== undefined) {
+      const v = row[key];
+      return v === null || v === undefined ? '' : String(v).trim();
+    }
+  }
+  return '';
+}
+
+async function syncFromGSheet() {
+  const url = getGSheetUrl();
+  const btn = document.getElementById('sync-btn');
+  if (!url) {
+    alert('⚠️ 請先展開下方「⚙️ Google 表單 / Google Sheet 同步設定」填入 Apps Script 網址');
+    return;
+  }
+  btn.textContent = '⏳ 同步中…';
+  btn.disabled = true;
+  try {
+    const resp = await fetch(url, { redirect: 'follow' });
+    const json = await resp.json();
+    if (!json.success) throw new Error(json.error || '未知錯誤');
+
+    let added = 0, skipped = 0, updated = 0;
+    for (const row of (json.data || [])) {
+      const ts = findVal(row, ['時間戳記', 'Timestamp']);
+      const name = findVal(row, ['名字', '姓名']);
+      if (!name) continue;
+
+      // 用「時間戳記」去重＋比對同一份填答是否已存在（同一人重填表單會視為更新最新一筆）
+      const existing = ts ? guests.find(g => g.formTs === ts) : null;
+      if (existing) { skipped++; continue; }
+
+      const email = findVal(row, ['Email']);
+      const relation = findVal(row, ['與新人的關係']);
+      const attendAns = findVal(row, ['是否能出席婚禮']);
+      const ceremonyAttend = findVal(row, ['戶外證婚儀式']);
+      const ceremonyCount = findVal(row, ['證婚儀式出席人數']);
+      const lunchCount = findVal(row, ['午宴總出席人數']);
+      const mainCourse = findVal(row, ['主餐選擇']);
+      const dietary = findVal(row, ['飲食禁忌']);
+      const hasChildren = findVal(row, ['是否有兒童']);
+      const childCount = findVal(row, ['兒童數量']);
+      const child0to80 = findVal(row, ['80公分以下']);
+      const child80to100 = findVal(row, ['80-100公分']);
+      const child100to140 = findVal(row, ['100-140公分']);
+      const childSeatNeed = findVal(row, ['兒童座椅與餐具需求']);
+      const afterParty = findVal(row, ['After Party']);
+      const blessing = findVal(row, ['祝福話語']);
+      const songRequest = findVal(row, ['婚禮歌單']);
+
+      // 出席狀態：表單沒有固定選項可對照，用關鍵字判斷（這是推論，非精準比對，同步後請人工覆核）
+      let rsvp = 'pending';
+      if (/無法|不克|不能|不出席|拒絕/.test(attendAns)) rsvp = 'decline';
+      else if (/可以|能|出席|會/.test(attendAns)) rsvp = 'confirmed';
+
+      // 邀請方：表單未收集，嘗試從「與新人的關係」文字判斷新郎/新娘方，判斷不出來則留白待人工補上
+      let side = '';
+      if (/新郎/.test(relation)) side = 'groom';
+      else if (/新娘/.test(relation)) side = 'bride';
+
+      const count = parseInt(lunchCount) || parseInt(ceremonyCount) || 1;
+
+      guests.push({
+        id: uid(),
+        name,
+        relation: relation || '（Google 表單）',
+        side,
+        rsvp,
+        count,
+        contact: email,
+        email,
+        mainCourse,
+        ceremonyAttend,
+        ceremonyCount: ceremonyCount ? parseInt(ceremonyCount) : '',
+        dietary,
+        hasChildren,
+        childCount: childCount ? parseInt(childCount) : '',
+        child0to80: child0to80 ? parseInt(child0to80) : '',
+        child80to100: child80to100 ? parseInt(child80to100) : '',
+        child100to140: child100to140 ? parseInt(child100to140) : '',
+        childSeatNeed,
+        afterParty,
+        blessing,
+        songRequest,
+        note: '',
+        seat: '',
+        formTs: ts,
+      });
+      added++;
+    }
+
+    if (added > 0) { SS('guests', guests); renderGuest(); updateDash(); }
+    alert(`✅ 同步完成！\n新增 ${added} 位 ／ 略過 ${skipped} 位（已存在）\n\n⚠️ 提醒：「邀請方（新郎／新娘）」與「出席狀態」是系統依表單文字自動判斷，請到賓客名單覆核一下，不確定的請手動修正。`);
+  } catch (err) {
+    alert(`❌ 同步失敗：${err.message}\n\n請確認：\n1. 網址正確\n2. Apps Script 存取設定為「所有人」`);
+  } finally {
+    btn.textContent = '🔄 從 Google Sheet 同步';
+    btn.disabled = false;
+  }
+}
+
+// ═══ Init ════════════════════════════════════════════════════════════
+renderTodo();
+renderBudget();
+renderGuest();
+updateDash();
+restoreGSheetUrl();
+</script>
+</body>
+</html>
