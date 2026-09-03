@@ -34,11 +34,11 @@ header h1{font-size:19px;font-weight:700;letter-spacing:1px}
 header .sub{font-size:12px;opacity:.85;margin-top:4px}
 
 /* SUMMARY */
-.dash{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:20px 28px 0}
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px 0}
 .sc{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);border-left:4px solid var(--rose)}
-.sc.g{border-left-color:var(--blue)}.sc.t{border-left-color:var(--green)}
+.sc.g{border-left-color:var(--blue)}.sc.t{border-left-color:var(--green)}.sc.c{border-left-color:var(--gold)}
 .sc .sn{font-size:24px;font-weight:800;color:var(--rose)}
-.sc.g .sn{color:var(--blue)}.sc.t .sn{color:var(--green)}
+.sc.g .sn{color:var(--blue)}.sc.t .sn{color:var(--green)}.sc.c .sn{color:var(--gold)}
 .sc .sl{font-size:12px;color:var(--gray);margin-top:3px}
 
 /* TABS */
@@ -134,6 +134,10 @@ tr:hover td{background:#fafafa}
   <div class="sc t">
     <div class="sn" id="st-seats">0</div>
     <div class="sl">🪑 已安排座位</div>
+  </div>
+  <div class="sc c">
+    <div class="sn" id="st-children">0</div>
+    <div class="sl">👶 兒童人數（估）</div>
   </div>
 </div>
 
@@ -358,6 +362,14 @@ function updateSummary() {
     return sum + (parseInt(lunchCount) || parseInt(ceremonyCount) || 1);
   }, 0);
   document.getElementById('st-confirmed').textContent = confirmedCount;
+
+  const childrenCount = rawGuests.reduce((sum, row) => {
+    const attendAns = findVal(row, ['是否能出席婚禮']);
+    if (inferRsvp(attendAns) !== 'confirmed') return sum;
+    const childCount = findVal(row, ['兒童數量']);
+    return sum + (parseInt(childCount) || 0);
+  }, 0);
+  document.getElementById('st-children').textContent = childrenCount;
 }
 
 function esc(str) {
