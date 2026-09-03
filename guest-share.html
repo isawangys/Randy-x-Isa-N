@@ -57,6 +57,13 @@ header .sub{font-size:12px;opacity:.85;margin-top:4px}
 .bgr{background:var(--green);color:#fff}.bgr:hover{background:#457055}
 .bgh{background:var(--gray-l);color:var(--gray)}.bgh:hover{background:#e5e7eb}
 
+.side-stats{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.side-stat{flex:1;min-width:130px;background:var(--gray-l);border-radius:10px;padding:10px 14px}
+.side-stat .ssn{display:block;font-size:20px;font-weight:800;color:var(--rose)}
+.side-stat.b .ssn{color:var(--blue)}
+.side-stat.gr .ssn{color:var(--green)}
+.side-stat .ssl{font-size:11px;color:var(--gray)}
+
 .filters{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fb{padding:4px 13px;border:1px solid var(--border);background:#fff;border-radius:20px;font-size:12px;cursor:pointer;color:var(--gray)}
 .fb.act,.fb:hover{background:var(--rose);color:#fff;border-color:var(--rose)}
@@ -88,8 +95,22 @@ tr:hover td{background:#fafafa}
 .seat-col-subheader{display:flex;justify-content:space-between;width:100%;font-size:10px;color:var(--gray);margin-bottom:6px;padding:0 4px}
 .seat-pair{display:flex;align-items:center;gap:3px;margin:2px 0}
 .seat-spine{width:8px;height:26px;background:linear-gradient(180deg,var(--border),#d1d5db);border-radius:2px;flex-shrink:0}
-.seat{width:28px;height:28px;border-radius:6px;border:2px solid var(--border);background:#fff;font-size:8px;font-weight:700;color:var(--gray);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.seat{width:28px;height:28px;border-radius:6px;border:2px solid var(--border);background:#fff;font-size:8px;font-weight:700;color:var(--gray);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;cursor:pointer}
+.seat:hover{border-color:var(--rose);transform:scale(1.1)}
 .seat.taken{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
+.seat.taken:hover{background:#3a6090;border-color:#3a6090}
+
+/* SEAT MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
+.ov.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:22px;width:380px;max-width:92vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
+.modal .si{width:100%;margin-bottom:10px}
+.pick-list{border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto}
+.pick-item{padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)}
+.pick-item:last-child{border-bottom:none}
+.pick-item:hover{background:var(--rose-l)}
+.modal .ma{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .seat-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
 .seat:hover .seat-tooltip{opacity:1}
 
@@ -154,6 +175,11 @@ tr:hover td{background:#fafafa}
       <div class="st">賓客名單 <span id="guest-updated"></span></div>
       <button class="btn bgr" onclick="loadGuests()">🔄 重新整理</button>
     </div>
+    <div class="side-stats">
+      <div class="side-stat b"><span class="ssn" id="ss-groom">0</span><span class="ssl">🤵 新郎方親友（估）</span></div>
+      <div class="side-stat p"><span class="ssn" id="ss-bride">0</span><span class="ssl">👰 新娘方親友（估）</span></div>
+      <div class="side-stat gr"><span class="ssn" id="ss-both">0</span><span class="ssl">🤝 雙方親友（估）</span></div>
+    </div>
     <div class="filters">
       <input type="text" class="si" placeholder="搜尋姓名..." oninput="renderGuests(this.value)" id="guest-search">
       <button class="fb act" onclick="setGFlt('all',this)">全部</button>
@@ -179,22 +205,35 @@ tr:hover td{background:#fafafa}
   <div class="panel" id="panel-seat">
     <div class="sh">
       <div class="st">座位安排 <span id="seat-updated"></span></div>
+      <button class="btn bgr" onclick="loadSeats()">🔄 重新整理</button>
     </div>
     <div id="seat-err"></div>
     <div style="text-align:center;color:var(--gray);font-size:11px;margin-bottom:14px;letter-spacing:2px">🎬 舞台 &amp; 新人進場方向</div>
     <div class="seating-tables" id="seating-area"></div>
     <div style="text-align:center;color:var(--gray);font-size:11px;margin-top:14px;letter-spacing:2px">🚪 賓客入口</div>
-    <div class="note">座位表為新人最後一次匯出時的快照，可能與最新安排有些微落差。</div>
+    <div class="note">點座位可以直接指派／清除賓客，跟 admin 頁面即時同步。</div>
   </div>
 
 </div>
+</div>
+
+<!-- 座位指派 Modal -->
+<div class="ov" id="seat-ov" onclick="if(event.target===this)closeSeatModal()">
+  <div class="modal">
+    <h3 id="seat-modal-title">指派座位</h3>
+    <input type="text" class="si" id="seat-search" placeholder="搜尋姓名..." oninput="renderPickList(this.value)">
+    <div class="pick-list" id="seat-pick-list"></div>
+    <div class="ma">
+      <button class="btn bgh" id="seat-clear-btn" onclick="assignSeat(null)" hidden>清除此座位</button>
+      <button class="btn bgh" onclick="closeSeatModal()">取消</button>
+    </div>
+  </div>
 </div>
 
 <script>
 // ═══ 設定（請依實際狀況修改）═══════════════════════════════════════
 const SHARE_PASSWORD = '1234';           // 分享用密碼（僅防閒雜人等隨手打開，非嚴謹保護）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx53bSIUNrusPlkNSgpV1TVcplHF8ucCwJg24rBlMbgyZkXwv6iWJdgcg2oMZ0Rg-gqBQ/exec';   // 跟 admin 頁面同步設定用的同一組網址
-const SEAT_JSON_URL = 'seat-data.json';                // 座位表快照檔（跟本頁放同一層資料夾）
 
 // ═══ 密碼閘 ══════════════════════════════════════════════════════
 function checkPw() {
@@ -274,38 +313,40 @@ async function loadGuests() {
   }
 }
 
+function mapGuestRow(row) {
+  const name = findVal(row, ['名字', '姓名']);
+  const email = findVal(row, ['Email']);
+  const relation = findVal(row, ['與新人的關係']);
+  const attendAns = findVal(row, ['是否能出席婚禮']);
+  const ceremonyAttend = findVal(row, ['戶外證婚儀式']);
+  const ceremonyCount = findVal(row, ['證婚儀式出席人數']);
+  const lunchCount = findVal(row, ['午宴總出席人數']);
+  const mainCourse = findVal(row, ['主餐選擇']);
+  const dietary = findVal(row, ['飲食禁忌']);
+  const hasChildren = findVal(row, ['是否有兒童']);
+  const childCount = findVal(row, ['兒童數量']);
+  const child0to80 = findVal(row, ['80公分以下']);
+  const child80to100 = findVal(row, ['80-100公分']);
+  const child100to140 = findVal(row, ['100-140公分']);
+  const songRequest = findVal(row, ['婚禮歌單']);
+  return {
+    name, email, relation,
+    rsvp: inferRsvp(attendAns),
+    side: inferSide(relation),
+    ceremonyAttend, mainCourse, dietary, hasChildren,
+    childCount, child0to80, child80to100, child100to140,
+    count: parseInt(lunchCount) || parseInt(ceremonyCount) || 1,
+    songRequest,
+  };
+}
+
 function renderGuests(search = '') {
   const s = (search || '').toLowerCase();
   const RL = { confirmed: 'bg-b', pending: 'bp-b', decline: 'ur-b' };
   const RLB = { confirmed: '確認出席', pending: '待確認', decline: '無法出席' };
   const SI = { groom: '新郎方', bride: '新娘方' };
 
-  const rows = rawGuests.map(row => {
-    const name = findVal(row, ['名字', '姓名']);
-    const email = findVal(row, ['Email']);
-    const relation = findVal(row, ['與新人的關係']);
-    const attendAns = findVal(row, ['是否能出席婚禮']);
-    const ceremonyAttend = findVal(row, ['戶外證婚儀式']);
-    const ceremonyCount = findVal(row, ['證婚儀式出席人數']);
-    const lunchCount = findVal(row, ['午宴總出席人數']);
-    const mainCourse = findVal(row, ['主餐選擇']);
-    const dietary = findVal(row, ['飲食禁忌']);
-    const hasChildren = findVal(row, ['是否有兒童']);
-    const childCount = findVal(row, ['兒童數量']);
-    const child0to80 = findVal(row, ['80公分以下']);
-    const child80to100 = findVal(row, ['80-100公分']);
-    const child100to140 = findVal(row, ['100-140公分']);
-    const songRequest = findVal(row, ['婚禮歌單']);
-    return {
-      name, email, relation,
-      rsvp: inferRsvp(attendAns),
-      side: inferSide(relation),
-      ceremonyAttend, mainCourse, dietary, hasChildren,
-      childCount, child0to80, child80to100, child100to140,
-      count: parseInt(lunchCount) || parseInt(ceremonyCount) || 1,
-      songRequest,
-    };
-  }).filter(g => g.name);
+  const rows = rawGuests.map(mapGuestRow).filter(g => g.name);
 
   const list = rows.filter(g => {
     if (s && !g.name.toLowerCase().includes(s) && !(g.relation || '').toLowerCase().includes(s)) return false;
@@ -354,45 +395,65 @@ function renderGuests(search = '') {
 
 function updateSummary() {
   document.getElementById('st-total').textContent = rawGuests.length;
-  const confirmedCount = rawGuests.reduce((sum, row) => {
-    const attendAns = findVal(row, ['是否能出席婚禮']);
-    if (inferRsvp(attendAns) !== 'confirmed') return sum;
-    const lunchCount = findVal(row, ['午宴總出席人數']);
-    const ceremonyCount = findVal(row, ['證婚儀式出席人數']);
-    return sum + (parseInt(lunchCount) || parseInt(ceremonyCount) || 1);
-  }, 0);
-  document.getElementById('st-confirmed').textContent = confirmedCount;
 
-  const childrenCount = rawGuests.reduce((sum, row) => {
-    const attendAns = findVal(row, ['是否能出席婚禮']);
-    if (inferRsvp(attendAns) !== 'confirmed') return sum;
-    const childCount = findVal(row, ['兒童數量']);
-    return sum + (parseInt(childCount) || 0);
-  }, 0);
-  document.getElementById('st-children').textContent = childrenCount;
+  const confirmed = rawGuests.map(mapGuestRow).filter(g => g.name && g.rsvp === 'confirmed');
+  const sumCount = list => list.reduce((sum, g) => sum + (g.count || 0), 0);
+
+  document.getElementById('st-confirmed').textContent = sumCount(confirmed);
+  document.getElementById('st-children').textContent =
+    confirmed.reduce((sum, g) => sum + (parseInt(g.childCount) || 0), 0);
+
+  document.getElementById('ss-groom').textContent = sumCount(confirmed.filter(g => g.side === 'groom'));
+  document.getElementById('ss-bride').textContent = sumCount(confirmed.filter(g => g.side === 'bride'));
+  document.getElementById('ss-both').textContent = sumCount(confirmed.filter(g => g.side === ''));
 }
 
 function esc(str) {
   return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-// ═══ 座位安排：讀取新人匯出的快照 seat-data.json ═══════════════════
+// ═══ 座位安排：即時讀寫 Apps Script 的座位表（跟 admin 頁面共用同一份後端）═══
 const TABLE_NAMES = ['第一排', '第二排', '第三排', '第四排'];
-let seatSnapshot = null;
+let seatSnapshot = null; // { seatsPerSide, seats:{1:{A:[...],B:[...]},...} }
+let seatCtx = { t: null, side: null, idx: null };
+
+function emptySeats(sps) {
+  const seats = {};
+  for (let t = 1; t <= 4; t++) seats[t] = { A: Array(sps).fill(null), B: Array(sps).fill(null) };
+  return seats;
+}
 
 async function loadSeats() {
   const errEl = document.getElementById('seat-err');
   errEl.innerHTML = '';
+  if (!GAS_URL || GAS_URL.includes('請貼上')) {
+    errEl.innerHTML = '<div class="err">⚠️ 尚未設定 Apps Script 網址，請聯絡新人補上設定</div>';
+    return;
+  }
   try {
-    const resp = await fetch(SEAT_JSON_URL, { cache: 'no-store' });
-    if (!resp.ok) throw new Error('找不到 seat-data.json（新人可能還沒有匯出座位表）');
-    seatSnapshot = await resp.json();
+    const sep = GAS_URL.includes('?') ? '&' : '?';
+    const resp = await fetch(GAS_URL + sep + 'type=seats', { redirect: 'follow' });
+    const json = await resp.json();
+    if (!json.success) throw new Error(json.error || '未知錯誤');
+    const sps = json.seatsPerSide || 24;
+    seatSnapshot = { seatsPerSide: sps, seats: json.seats || emptySeats(sps) };
     document.getElementById('seat-updated').textContent =
-      seatSnapshot.exportedAt ? '· 新人匯出於 ' + new Date(seatSnapshot.exportedAt).toLocaleString('zh-TW') : '';
+      json.updatedAt ? '· 更新於 ' + new Date(json.updatedAt).toLocaleString('zh-TW') : '· 尚未有人排過座位';
     renderSeating();
   } catch (err) {
     errEl.innerHTML = '<div class="err">⚠️ 座位表讀取失敗：' + err.message + '</div>';
     document.getElementById('seating-area').innerHTML = '';
+  }
+}
+
+async function saveSeatsToBackend() {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'seats', seatsPerSide: seatSnapshot.seatsPerSide, seats: seatSnapshot.seats })
+    });
+  } catch (err) {
+    document.getElementById('seat-err').innerHTML = '<div class="err">⚠️ 座位同步失敗，請稍後再試：' + err.message + '</div>';
   }
 }
 
@@ -401,7 +462,7 @@ function renderSeating() {
   container.innerHTML = '';
   if (!seatSnapshot || !seatSnapshot.seats) return;
 
-  let assigned = 0, total = 0;
+  let assigned = 0;
 
   for (let t = 1; t <= 4; t++) {
     const side = seatSnapshot.seats[t];
@@ -421,14 +482,13 @@ function renderSeating() {
 
     const len = Math.max(side.A.length, side.B.length);
     for (let idx = 0; idx < len; idx++) {
-      total += 2;
       const pair = document.createElement('div');
       pair.className = 'seat-pair';
-      pair.appendChild(createSeatEl(side.A[idx], idx));
+      pair.appendChild(createSeatEl(t, 'A', idx, side.A[idx]));
       const spine = document.createElement('div');
       spine.className = 'seat-spine';
       pair.appendChild(spine);
-      pair.appendChild(createSeatEl(side.B[idx], idx));
+      pair.appendChild(createSeatEl(t, 'B', idx, side.B[idx]));
       if (side.A[idx]) assigned++;
       if (side.B[idx]) assigned++;
       col.appendChild(pair);
@@ -438,7 +498,7 @@ function renderSeating() {
   document.getElementById('st-seats').textContent = assigned;
 }
 
-function createSeatEl(entry, idx) {
+function createSeatEl(t, side, idx, entry) {
   const el = document.createElement('div');
   const name = entry && entry.name ? entry.name : '';
   el.className = 'seat' + (name ? ' taken' : '');
@@ -453,7 +513,60 @@ function createSeatEl(entry, idx) {
   tip.className = 'seat-tooltip';
   tip.textContent = name ? name : (num + ' 號（空位）');
   el.appendChild(tip);
+  el.onclick = () => openSeatModal(t, side, idx);
   return el;
+}
+
+// ═══ 座位指派 Modal ═══════════════════════════════════════════════
+function getPickableGuests() {
+  const seen = new Set();
+  const list = [];
+  rawGuests.forEach(row => {
+    const name = findVal(row, ['名字', '姓名']);
+    const formTs = findVal(row, ['時間戳記', 'Timestamp']);
+    if (!name) return;
+    const key = formTs || name;
+    if (seen.has(key)) return;
+    seen.add(key);
+    list.push({ name, formTs });
+  });
+  return list;
+}
+
+function openSeatModal(t, side, idx) {
+  seatCtx = { t, side, idx };
+  const current = seatSnapshot.seats[t][side][idx];
+  document.getElementById('seat-modal-title').textContent =
+    TABLE_NAMES[t - 1] + (side === 'A' ? '左' : '右') + '側 ' + (idx + 1) + ' 號';
+  document.getElementById('seat-search').value = '';
+  document.getElementById('seat-clear-btn').hidden = !current;
+  renderPickList('');
+  document.getElementById('seat-ov').classList.add('open');
+}
+
+function closeSeatModal() {
+  document.getElementById('seat-ov').classList.remove('open');
+}
+
+function renderPickList(search) {
+  const s = (search || '').toLowerCase();
+  const list = getPickableGuests().filter(g => g.name.toLowerCase().includes(s));
+  const el = document.getElementById('seat-pick-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="pick-item" style="color:var(--gray)">沒有符合的賓客</div>';
+    return;
+  }
+  el.innerHTML = list.map(g =>
+    '<div class="pick-item" onclick=\'assignSeat(' + JSON.stringify({ name: g.name, formTs: g.formTs }).replace(/'/g, '&#39;') + ')\'>' + esc(g.name) + '</div>'
+  ).join('');
+}
+
+async function assignSeat(entry) {
+  const { t, side, idx } = seatCtx;
+  seatSnapshot.seats[t][side][idx] = entry;
+  closeSeatModal();
+  renderSeating();
+  await saveSeatsToBackend();
 }
 </script>
 </body>

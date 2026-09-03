@@ -334,7 +334,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
       </div>
       <div style="font-size:12px;color:var(--gray)" id="seat-summary">已指派 0 / 0 個座位</div>
       <button class="btn bgh bsm" onclick="clearAllSeats()">🗑 清除全部</button>
-      <button class="btn bgr bsm" onclick="exportSeatSnapshot()">📤 匯出座位表</button>
+      <button class="btn bgr bsm" onclick="pullSeatsFromBackend()">🔄 重新整理座位</button>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;color:var(--gray)">
@@ -861,7 +861,7 @@ function resizeSeats(val) {
       else seatData[t][s]=arr.slice(0,sps);
     });
   }
-  SS('seats',seatData);
+  SS('seats',seatData); pushSeatsToBackend();
   renderSeating(); updateDash();
 }
 
@@ -1031,7 +1031,7 @@ function saveSeat() {
       SS('guests',guests);
     }
   }
-  SS('seats',seatData);
+  SS('seats',seatData); pushSeatsToBackend();
   closeSeatModal(); renderSeating();
 }
 
@@ -1049,14 +1049,14 @@ function clearSeat() {
       SS('guests',guests);
     }
   }
-  SS('seats',seatData); closeSeatModal(); renderSeating();
+  SS('seats',seatData); pushSeatsToBackend(); closeSeatModal(); renderSeating();
 }
 
 function clearAllSeats() {
   if(!confirm('確定要清除所有座位安排嗎？')) return;
   Object.values(seatData).forEach(t=>['A','B'].forEach(s=>t[s].fill(null)));
   guests.forEach(g=>{g.seat=''}); SS('guests',guests);
-  SS('seats',seatData); renderSeating();
+  SS('seats',seatData); pushSeatsToBackend(); renderSeating();
 }
 
 function closeSeatModal(e) {
@@ -1377,28 +1377,63 @@ updateDash();
 restoreGSheetUrl();
 </script>
 
-<!-- 分享頁用：匯出座位表快照，供 guest-share.html 讀取 -->
+<!-- 座位表雲端同步：跟 guest-share.html 共用同一份 Apps Script 後端 -->
 <script>
-function exportSeatSnapshot() {
-  const snapshot = { seatsPerSide, exportedAt: new Date().toISOString(), seats: {} };
+// 把目前的座位安排推上 Google Sheet（用 formTs 當穩定的賓客識別碼，不用本機才有的 id）
+async function pushSeatsToBackend() {
+  const url = getGSheetUrl();
+  if (!url) return;
+  const seats = {};
   for (let t = 1; t <= 4; t++) {
-    snapshot.seats[t] = { A: [], B: [] };
+    seats[t] = { A: [], B: [] };
     ['A','B'].forEach(side => {
       seatData[t][side].forEach(gid => {
-        if (!gid) { snapshot.seats[t][side].push(null); return; }
+        if (!gid) { seats[t][side].push(null); return; }
         const g = guests.find(x => x.id === gid);
-        snapshot.seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '' } : null);
+        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '' } : null);
       });
     });
   }
-  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'seat-data.json';
-  a.click();
-  URL.revokeObjectURL(url);
+  try {
+    await fetch(url, { method: 'POST', body: JSON.stringify({ type: 'seats', seatsPerSide, seats }) });
+  } catch (err) {
+    console.warn('座位同步失敗', err);
+  }
 }
+
+// 從 Google Sheet 抓最新座位表，把 formTs 對回本機的 guest id
+async function pullSeatsFromBackend() {
+  const url = getGSheetUrl();
+  if (!url) return;
+  try {
+    const sep = url.includes('?') ? '&' : '?';
+    const resp = await fetch(url + sep + 'type=seats', { redirect: 'follow' });
+    const json = await resp.json();
+    if (!json.success || !json.seats) return;
+
+    const sps = json.seatsPerSide || seatsPerSide;
+    const newSeatData = {};
+    for (let t = 1; t <= 4; t++) {
+      newSeatData[t] = { A: [], B: [] };
+      ['A','B'].forEach(side => {
+        const arr = (json.seats[t] && json.seats[t][side]) || [];
+        newSeatData[t][side] = arr.map(entry => {
+          if (!entry) return null;
+          const g = guests.find(x => (entry.formTs && x.formTs === entry.formTs) || x.name === entry.name);
+          return g ? g.id : null;
+        });
+      });
+    }
+    seatData = newSeatData;
+    seatsPerSide = sps;
+    SS('seats', seatData);
+    SS('sps', seatsPerSide);
+    renderSeating();
+  } catch (err) {
+    console.warn('座位讀取失敗', err);
+  }
+}
+pullSeatsFromBackend();
 </script>
 </body>
 </html>
