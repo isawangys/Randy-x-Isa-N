@@ -334,6 +334,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
       </div>
       <div style="font-size:12px;color:var(--gray)" id="seat-summary">已指派 0 / 0 個座位</div>
       <button class="btn bgh bsm" onclick="clearAllSeats()">🗑 清除全部</button>
+      <button class="btn bgr bsm" onclick="exportSeatSnapshot()">📤 匯出座位表</button>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;font-size:13px;color:var(--gray)">
@@ -1374,6 +1375,30 @@ renderBudget();
 renderGuest();
 updateDash();
 restoreGSheetUrl();
+</script>
+
+<!-- 分享頁用：匯出座位表快照，供 guest-share.html 讀取 -->
+<script>
+function exportSeatSnapshot() {
+  const snapshot = { seatsPerSide, exportedAt: new Date().toISOString(), seats: {} };
+  for (let t = 1; t <= 4; t++) {
+    snapshot.seats[t] = { A: [], B: [] };
+    ['A','B'].forEach(side => {
+      seatData[t][side].forEach(gid => {
+        if (!gid) { snapshot.seats[t][side].push(null); return; }
+        const g = guests.find(x => x.id === gid);
+        snapshot.seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '' } : null);
+      });
+    });
+  }
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'seat-data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
 </script>
 </body>
 </html>
