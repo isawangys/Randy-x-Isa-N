@@ -131,6 +131,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .seat.taken:hover{background:#3a6090;border-color:#3a6090}
 .seat-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
 .seat:hover .seat-tooltip{opacity:1}
+.seat-aisle{display:flex;align-items:center;gap:6px;width:100%;margin:8px 0;color:var(--gray);font-size:9px;letter-spacing:1px}
+.seat-aisle::before,.seat-aisle::after{content:'';flex:1;border-top:1px dashed var(--border)}
 
 /* EMPTY */
 .empty{text-align:center;padding:40px 0;color:var(--gray)}.empty .ei{font-size:40px;margin-bottom:10px}
@@ -413,6 +415,7 @@ let guests  = LS('guests')  || [];
 let timelines = LS('tl')    || getDefaultTimeline();
 let seatData  = LS('seats') || null;
 let seatsPerSide = LS('sps') || 24;
+const AISLE_EVERY = 12; // 每 12 個座位留一個走道，跟 guest-share.html 保持一致
 
 let editId=null, curModal=null, curSeatKey=null;
 let flt={todo:'all',bgt:'all',guest:'all'};
@@ -905,6 +908,13 @@ function renderSeating() {
       pair.appendChild(spine);
       pair.appendChild(seatB);
       col.appendChild(pair);
+
+      if ((idx + 1) % AISLE_EVERY === 0 && idx + 1 < sps2) {
+        const aisle = document.createElement('div');
+        aisle.className = 'seat-aisle';
+        aisle.textContent = '走道';
+        col.appendChild(aisle);
+      }
     }
     container.appendChild(col);
   }
@@ -957,7 +967,7 @@ function openSeatModal(t,side,idx,currentGid) {
   document.getElementById('sm-title').textContent=`第${TABLE_NAMES_SHORT[t-1]}排 ${sideLabel} 第 ${idx+1} 號座位`;
 
   // Build guest options with seat-count info
-  const opts=guests.map(g=>{
+  const opts=guests.filter(g=>g.rsvp==='confirmed' || g.id===currentGid).map(g=>{
     const assigned=getGuestSeatCount(g.id);
     const need=parseInt(g.count)||1;
     const full=assigned>=need && g.id!==currentGid;

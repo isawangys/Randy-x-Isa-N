@@ -113,6 +113,8 @@ tr:hover td{background:#fafafa}
 .modal .ma{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .seat-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
 .seat:hover .seat-tooltip{opacity:1}
+.seat-aisle{display:flex;align-items:center;gap:6px;width:100%;margin:8px 0;color:var(--gray);font-size:9px;letter-spacing:1px}
+.seat-aisle::before,.seat-aisle::after{content:'';flex:1;border-top:1px dashed var(--border)}
 
 @media(max-width:768px){
   .dash{grid-template-columns:repeat(2,1fr)}
@@ -221,6 +223,7 @@ tr:hover td{background:#fafafa}
 <div class="ov" id="seat-ov" onclick="if(event.target===this)closeSeatModal()">
   <div class="modal">
     <h3 id="seat-modal-title">指派座位</h3>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:8px">只列出確認出席的賓客；括號內為已指派 / 需求座位數</div>
     <input type="text" class="si" id="seat-search" placeholder="搜尋姓名..." oninput="renderPickList(this.value)">
     <div class="pick-list" id="seat-pick-list"></div>
     <div class="ma">
@@ -315,6 +318,7 @@ async function loadGuests() {
 
 function mapGuestRow(row) {
   const name = findVal(row, ['名字', '姓名']);
+  const formTs = findVal(row, ['時間戳記', 'Timestamp']);
   const email = findVal(row, ['Email']);
   const relation = findVal(row, ['與新人的關係']);
   const attendAns = findVal(row, ['是否能出席婚禮']);
@@ -330,7 +334,7 @@ function mapGuestRow(row) {
   const child100to140 = findVal(row, ['100-140公分']);
   const songRequest = findVal(row, ['婚禮歌單']);
   return {
-    name, email, relation,
+    name, formTs, email, relation,
     rsvp: inferRsvp(attendAns),
     side: inferSide(relation),
     ceremonyAttend, mainCourse, dietary, hasChildren,
@@ -414,6 +418,7 @@ function esc(str) {
 
 // ═══ 座位安排：即時讀寫 Apps Script 的座位表（跟 admin 頁面共用同一份後端）═══
 const TABLE_NAMES = ['第一排', '第二排', '第三排', '第四排'];
+const AISLE_EVERY = 12; // 每 12 個座位留一個走道，跟 wedding_1.html 保持一致
 let seatSnapshot = null; // { seatsPerSide, seats:{1:{A:[...],B:[...]},...} }
 let seatCtx = { t: null, side: null, idx: null };
 
@@ -491,6 +496,13 @@ function renderSeating() {
       if (side.A[idx]) assigned++;
       if (side.B[idx]) assigned++;
       col.appendChild(pair);
+
+      if ((idx + 1) % AISLE_EVERY === 0 && idx + 1 < len) {
+        const aisle = document.createElement('div');
+        aisle.className = 'seat-aisle';
+        aisle.textContent = '走道';
+        col.appendChild(aisle);
+      }
     }
     container.appendChild(col);
   }
@@ -517,17 +529,28 @@ function createSeatEl(t, side, idx, entry) {
 }
 
 // ═══ 座位指派 Modal ═══════════════════════════════════════════════
+// 統計某位賓客目前已經佔了幾個座位（用 formTs 當識別碼，沒有 formTs 才退回用姓名比對）
+function getGuestSeatCount(formTs, name) {
+  let n = 0;
+  if (!seatSnapshot || !seatSnapshot.seats) return n;
+  Object.values(seatSnapshot.seats).forEach(tbl => ['A', 'B'].forEach(side => {
+    (tbl[side] || []).forEach(entry => {
+      if (!entry) return;
+      if (formTs ? entry.formTs === formTs : entry.name === name) n++;
+    });
+  }));
+  return n;
+}
+
 function getPickableGuests() {
   const seen = new Set();
   const list = [];
-  rawGuests.forEach(row => {
-    const name = findVal(row, ['名字', '姓名']);
-    const formTs = findVal(row, ['時間戳記', 'Timestamp']);
-    if (!name) return;
-    const key = formTs || name;
+  rawGuests.map(mapGuestRow).forEach(g => {
+    if (!g.name || g.rsvp !== 'confirmed') return; // 只列出確認出席的賓客
+    const key = g.formTs || g.name;
     if (seen.has(key)) return;
     seen.add(key);
-    list.push({ name, formTs });
+    list.push({ name: g.name, formTs: g.formTs, relation: g.relation, need: g.count || 1 });
   });
   return list;
 }
@@ -549,15 +572,22 @@ function closeSeatModal() {
 
 function renderPickList(search) {
   const s = (search || '').toLowerCase();
-  const list = getPickableGuests().filter(g => g.name.toLowerCase().includes(s));
+  const { t, side, idx } = seatCtx;
+  const currentEntry = seatSnapshot.seats[t][side][idx];
+  const list = getPickableGuests().filter(g => g.name.toLowerCase().includes(s) || (g.relation || '').toLowerCase().includes(s));
   const el = document.getElementById('seat-pick-list');
   if (!list.length) {
     el.innerHTML = '<div class="pick-item" style="color:var(--gray)">沒有符合的賓客</div>';
     return;
   }
-  el.innerHTML = list.map(g =>
-    '<div class="pick-item" onclick=\'assignSeat(' + JSON.stringify({ name: g.name, formTs: g.formTs }).replace(/'/g, '&#39;') + ')\'>' + esc(g.name) + '</div>'
-  ).join('');
+  el.innerHTML = list.map(g => {
+    const isCurrent = currentEntry && (g.formTs ? currentEntry.formTs === g.formTs : currentEntry.name === g.name);
+    const assigned = getGuestSeatCount(g.formTs, g.name);
+    const full = assigned >= g.need && !isCurrent;
+    const label = esc(g.name) + (g.relation ? ' (' + esc(g.relation) + ')' : '') + ' — ' + assigned + '/' + g.need + '座' + (full ? ' ✓滿' : '');
+    const payload = JSON.stringify({ name: g.name, formTs: g.formTs }).replace(/'/g, '&#39;');
+    return '<div class="pick-item"' + (full ? ' style="color:var(--gray)"' : '') + ' onclick=\'assignSeat(' + payload + ')\'>' + label + '</div>';
+  }).join('');
 }
 
 async function assignSeat(entry) {
