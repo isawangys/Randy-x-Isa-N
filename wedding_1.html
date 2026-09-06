@@ -1491,7 +1491,8 @@ async function pullGuestsFromBackend() {
 }
 
 (async function initBackendSync() {
-  await pullGuestsFromBackend();
+  await pullGuestsFromBackend(); // 先合併其他裝置可能新增的賓客
+  await pushGuestsToBackend();   // 再把（合併後的）目前名單推回去，確保後端隨時有最新資料
   await pullSeatsFromBackend();
 })();
 </script>
