@@ -61,7 +61,7 @@ header .sub{font-size:12px;opacity:.85;margin-top:3px}
 
 /* TABLE */
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--gray-l);padding:9px 11px;text-align:left;font-weight:600;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+th{background:var(--gray-l);padding:9px 11px;text-align:left;font-weight:600;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2}
 th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
 td{padding:10px 11px;border-bottom:1px solid var(--border)}
 tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
@@ -312,6 +312,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
     <button class="fb act" onclick="setFlt('guest','all',this)">全部</button>
     <button class="fb" onclick="setFlt('guest','groom',this)">新郎方</button>
     <button class="fb" onclick="setFlt('guest','bride',this)">新娘方</button>
+    <button class="fb" onclick="setFlt('guest','both',this)">雙方朋友</button>
     <button class="fb" onclick="setFlt('guest','confirmed',this)">確認出席</button>
     <button class="fb" onclick="setFlt('guest','pending',this)">待確認</button>
   </div>
@@ -758,12 +759,13 @@ function renderGuest(search='') {
   const s=search.toLowerCase();
   const RL={confirmed:'bg-b',pending:'bp-b',decline:'ur-b'};
   const RLB={confirmed:'確認出席',pending:'待確認',decline:'無法出席'};
-  const SI={groom:'新郎方',bride:'新娘方'};
+  const SI={groom:'新郎方',bride:'新娘方',both:'雙方朋友'};
   let list=guests.filter(g=>{
     if(s&&!g.name.toLowerCase().includes(s)&&!(g.relation||'').toLowerCase().includes(s)) return false;
     if(flt.guest==='all') return true;
     if(flt.guest==='groom') return g.side==='groom';
     if(flt.guest==='bride') return g.side==='bride';
+    if(flt.guest==='both') return g.side==='both';
     if(flt.guest==='confirmed') return g.rsvp==='confirmed';
     if(flt.guest==='pending') return g.rsvp==='pending';
     return true;
@@ -790,7 +792,7 @@ function renderGuest(search='') {
     return `<tr>
     <td style="font-weight:600">${g.name}</td>
     <td style="font-size:12px">${g.relation||'—'}</td>
-    <td><span class="pill ${g.side==='groom'?'b':'gr'}">${SI[g.side]||'—'}</span></td>
+    <td><span class="pill ${g.side==='groom'?'b':g.side==='both'?'g':'gr'}">${SI[g.side]||'—'}</span></td>
     <td><span class="badge ${RL[g.rsvp]||'bp-b'}">${RLB[g.rsvp]||'待確認'}</span></td>
     <td style="font-size:12px;color:var(--gray)">${attendMode}</td>
     <td style="text-align:center">${g.count||1}</td>
@@ -1041,7 +1043,7 @@ function saveSeat() {
       SS('guests',guests);
     }
   }
-  SS('seats',seatData); pushSeatsToBackend();
+  SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend();
   closeSeatModal(); renderSeating();
 }
 
@@ -1059,14 +1061,14 @@ function clearSeat() {
       SS('guests',guests);
     }
   }
-  SS('seats',seatData); pushSeatsToBackend(); closeSeatModal(); renderSeating();
+  SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend(); closeSeatModal(); renderSeating();
 }
 
 function clearAllSeats() {
   if(!confirm('確定要清除所有座位安排嗎？')) return;
   Object.values(seatData).forEach(t=>['A','B'].forEach(s=>t[s].fill(null)));
   guests.forEach(g=>{g.seat=''}); SS('guests',guests);
-  SS('seats',seatData); pushSeatsToBackend(); renderSeating();
+  SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend(); renderSeating();
 }
 
 function closeSeatModal(e) {
@@ -1125,7 +1127,7 @@ function openModal(type,item=null) {
         <div class="fg"><label>稱謂/關係</label><input id="f-rel" value="${item?.relation||''}" placeholder="例：大學同學"></div>
       </div>
       <div class="frow">
-        <div class="fg"><label>邀請方</label><select id="f-side"><option value="groom" ${(item?.side||'groom')==='groom'?'selected':''}>新郎方</option><option value="bride" ${item?.side==='bride'?'selected':''}>新娘方</option></select></div>
+        <div class="fg"><label>邀請方</label><select id="f-side"><option value="groom" ${(item?.side||'groom')==='groom'?'selected':''}>新郎方</option><option value="bride" ${item?.side==='bride'?'selected':''}>新娘方</option><option value="both" ${item?.side==='both'?'selected':''}>雙方朋友</option></select></div>
         <div class="fg"><label>出席狀態</label><select id="f-rsvp">
           <option value="pending" ${(item?.rsvp||'pending')==='pending'?'selected':''}>待確認</option>
           <option value="confirmed" ${item?.rsvp==='confirmed'?'selected':''}>確認出席</option>
@@ -1176,7 +1178,7 @@ function delItem(type,id) {
   if(!confirm('確定要刪除嗎？')) return;
   if(type==='todo'){todos=todos.filter(x=>x.id!==id);SS('todos',todos);renderTodo();}
   if(type==='budget'){budgets=budgets.filter(x=>x.id!==id);SS('budgets',budgets);renderBudget();}
-  if(type==='guest'){guests=guests.filter(x=>x.id!==id);SS('guests',guests);renderGuest();}
+  if(type==='guest'){guests=guests.filter(x=>x.id!==id);SS('guests',guests);renderGuest();pushGuestsToBackend();}
   updateDash();
 }
 
@@ -1224,7 +1226,7 @@ function saveModal() {
       obj.seat='';
       guests.push(obj);
     }
-    SS('guests',guests);renderGuest();
+    SS('guests',guests);renderGuest();pushGuestsToBackend();
   }
   closeModal(); updateDash();
 }
@@ -1237,8 +1239,9 @@ function saveGSheetUrl(val) {
   localStorage.setItem('w2_gsheetUrl', val.trim());
 }
 
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxOqhfZunVrvGDsrIws85rpTxgx7xgPvmqm4DbO5gzT-VTD8DmwgPpkK9JbdeQo0qpXBw/exec';
 function getGSheetUrl() {
-  return localStorage.getItem('w2_gsheetUrl') || '';
+  return localStorage.getItem('w2_gsheetUrl') || DEFAULT_GAS_URL;
 }
 
 function restoreGSheetUrl() {
@@ -1333,10 +1336,11 @@ async function syncFromGSheet() {
       if (/無法|不克|不能|不出席|拒絕/.test(attendAns)) rsvp = 'decline';
       else if (/可以|能|出席|會/.test(attendAns)) rsvp = 'confirmed';
 
-      // 邀請方：表單未收集，嘗試從「與新人的關係」文字判斷新郎/新娘方，判斷不出來則留白待人工補上
+      // 邀請方：表單未收集，嘗試從「與新人的關係」文字判斷新郎/新娘/雙方，判斷不出來則留白待人工補上
       let side = '';
       if (/新郎/.test(relation)) side = 'groom';
       else if (/新娘/.test(relation)) side = 'bride';
+      else if (/雙方/.test(relation)) side = 'both';
 
       const count = parseInt(lunchCount) || parseInt(ceremonyCount) || 1;
 
@@ -1369,7 +1373,7 @@ async function syncFromGSheet() {
       added++;
     }
 
-    if (added > 0) { SS('guests', guests); renderGuest(); updateDash(); }
+    if (added > 0) { SS('guests', guests); renderGuest(); updateDash(); pushGuestsToBackend(); }
     alert(`✅ 同步完成！\n新增 ${added} 位 ／ 略過 ${skipped} 位（已存在）\n\n⚠️ 提醒：「邀請方（新郎／新娘）」與「出席狀態」是系統依表單文字自動判斷，請到賓客名單覆核一下，不確定的請手動修正。`);
   } catch (err) {
     alert(`❌ 同步失敗：${err.message}\n\n請確認：\n1. 網址正確\n2. Apps Script 存取設定為「所有人」`);
@@ -1442,7 +1446,54 @@ async function pullSeatsFromBackend() {
     console.warn('座位讀取失敗', err);
   }
 }
-pullSeatsFromBackend();
+
+// 把目前完整的賓客名單（含手動新增、人工修正）推上 Google Sheet，供 guest-share.html 讀取
+async function pushGuestsToBackend() {
+  const url = getGSheetUrl();
+  if (!url) return;
+  try {
+    await fetch(url, { method: 'POST', body: JSON.stringify({ type: 'guestList', data: guests }) });
+  } catch (err) {
+    console.warn('賓客名單同步失敗', err);
+  }
+}
+
+// 把 Google Sheet 上「本機沒有」的賓客（例如其他裝置手動新增的）合併進來；
+// 只新增缺少的項目，不覆蓋、不刪除本機既有資料
+async function pullGuestsFromBackend() {
+  const url = getGSheetUrl();
+  if (!url) return;
+  try {
+    const resp = await fetch(url, { method: 'POST', body: JSON.stringify({ type: 'getGuestList' }) });
+    const json = await resp.json();
+    if (!json.success || !Array.isArray(json.data)) return;
+
+    let addedAny = false;
+    json.data.forEach(remote => {
+      if (!remote.name) return;
+      const exists = guests.some(g =>
+        (remote.formTs && g.formTs === remote.formTs) ||
+        (!remote.formTs && g.name === remote.name && g.relation === remote.relation)
+      );
+      if (!exists) {
+        guests.push({ ...remote, id: uid(), seat: '' });
+        addedAny = true;
+      }
+    });
+    if (addedAny) {
+      SS('guests', guests);
+      renderGuest();
+      updateDash();
+    }
+  } catch (err) {
+    console.warn('賓客名單讀取失敗', err);
+  }
+}
+
+(async function initBackendSync() {
+  await pullGuestsFromBackend();
+  await pullSeatsFromBackend();
+})();
 </script>
 </body>
 </html>
