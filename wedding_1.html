@@ -125,7 +125,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .seat-col-subheader{display:flex;justify-content:space-between;width:100%;font-size:10px;color:var(--gray);margin-bottom:6px;padding:0 4px}
 .seat-pair{display:flex;align-items:center;gap:3px;margin:2px 0}
 .seat-spine{width:8px;height:26px;background:linear-gradient(180deg,var(--border),#d1d5db);border-radius:2px;flex-shrink:0}
-.seat{width:28px;height:28px;border-radius:6px;border:2px solid var(--border);background:#fff;cursor:pointer;font-size:8px;font-weight:700;color:var(--gray);display:flex;align-items:center;justify-content:center;transition:all .15s;position:relative;flex-shrink:0}
+.seat{width:44px;height:40px;border-radius:6px;border:2px solid var(--border);background:#fff;cursor:pointer;font-size:9px;font-weight:700;color:var(--gray);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1;padding:2px;overflow:hidden;transition:all .15s;position:relative;flex-shrink:0}
+.seat.drag-over{border-color:var(--rose);border-style:dashed;background:var(--rose-l)}
+.seat[draggable="true"]{cursor:grab}
 .seat:hover{border-color:var(--rose);color:var(--rose);transform:scale(1.1)}
 .seat.taken{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
 .seat.taken:hover{background:#3a6090;border-color:#3a6090}
@@ -930,10 +932,10 @@ function createSeatEl(t, side, idx, gid) {
   const name = g ? g.name : '';
   const num = idx + 1;
 
-  // Content: show seat number or abbreviated name
+  // Content: show seat number or (up to 6 chars of) the guest's name
   if (gid && name) {
-    const short = name.length <= 2 ? name : name.slice(0, 2);
-    s.innerHTML = `<span style="font-size:8px;line-height:1;text-align:center">${short}</span>`;
+    const short = name.length <= 6 ? name : name.slice(0, 6);
+    s.innerHTML = `<span style="font-size:9px;line-height:1.1;text-align:center">${short}</span>`;
   } else {
     s.innerHTML = `<span>${num}</span>`;
   }
@@ -945,9 +947,55 @@ function createSeatEl(t, side, idx, gid) {
   s.appendChild(tip);
 
   s.onclick = () => openSeatModal(t, side, idx, gid);
+
+  // 拖拉調整座位：只有已指派的座位可以被拖，任何座位（含空位）都可以當放置目標
+  s.draggable = !!gid;
+  s.addEventListener('dragstart', e => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ t, side, idx }));
+  });
+  s.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    s.classList.add('drag-over');
+  });
+  s.addEventListener('dragleave', () => s.classList.remove('drag-over'));
+  s.addEventListener('drop', e => {
+    e.preventDefault();
+    s.classList.remove('drag-over');
+    const src = JSON.parse(e.dataTransfer.getData('text/plain'));
+    moveSeatContents(src, { t, side, idx });
+  });
+
   return s;
 }
 const TABLE_NAMES_SHORT = ['一','二','三','四'];
+
+// 拖拉移動／交換兩個座位的內容
+function moveSeatContents(src, dst) {
+  if (src.t === dst.t && src.side === dst.side && src.idx === dst.idx) return;
+  const srcGid = seatData[src.t][src.side][src.idx];
+  const dstGid = seatData[dst.t][dst.side][dst.idx];
+  if (!srcGid) return; // 來源沒有人，沒什麼好搬的
+  seatData[dst.t][dst.side][dst.idx] = srcGid;
+  seatData[src.t][src.side][src.idx] = dstGid;
+
+  [srcGid, dstGid].filter(Boolean).forEach(gid => {
+    const g = guests.find(x => x.id === gid);
+    if (!g) return;
+    const labels = [];
+    for (let tt = 1; tt <= 4; tt++) ['A','B'].forEach(ss => {
+      seatData[tt][ss].forEach((id2, i) => { if (id2 === gid) labels.push(`第${TABLE_NAMES_SHORT[tt-1]}排${ss==='A'?'左':'右'}-${i+1}`); });
+    });
+    g.seat = labels.join('、');
+  });
+
+  SS('guests', guests);
+  SS('seats', seatData);
+  pushSeatsToBackend();
+  pushGuestsToBackend();
+  renderSeating();
+}
 
 function getGuestName(gid) {
   const g=guests.find(x=>x.id===gid);
