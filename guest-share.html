@@ -10,6 +10,7 @@
   --gold:#b8975a;--gold-l:#f7f0e3;
   --green:#5a8a6a;--green-l:#e6f2eb;
   --blue:#5a7aa8;--blue-l:#e6eef7;
+  --yellow:#c9a227;--yellow-l:#faf3d6;
   --gray:#6b7280;--gray-l:#f3f4f6;
   --border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.08);
   --text:#2d2d2d;
@@ -61,7 +62,7 @@ header .sub{font-size:12px;opacity:.85;margin-top:4px}
 .side-stat{flex:1;min-width:130px;background:var(--gray-l);border-radius:10px;padding:10px 14px}
 .side-stat .ssn{display:block;font-size:20px;font-weight:800;color:var(--rose)}
 .side-stat.b .ssn{color:var(--blue)}
-.side-stat.gr .ssn{color:var(--green)}
+.side-stat.y .ssn{color:var(--yellow)}
 .side-stat .ssl{font-size:11px;color:var(--gray)}
 
 .filters{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
@@ -82,6 +83,7 @@ tr:hover td{background:#fafafa}
 .ur-b{background:#fee2e2;color:#dc2626}
 .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--rose-l);color:var(--rose)}
 .pill.b{background:var(--blue-l);color:var(--blue)}
+.pill.y{background:var(--yellow-l);color:var(--yellow)}
 .pill.gr{background:var(--green-l);color:var(--green)}
 
 .empty{text-align:center;padding:40px 0;color:var(--gray)}.empty .ei{font-size:36px;margin-bottom:10px}
@@ -101,10 +103,10 @@ tr:hover td{background:#fafafa}
 .seat:hover{border-color:var(--rose);transform:scale(1.1)}
 .seat.side-groom{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
 .seat.side-groom:hover{background:#3a6090;border-color:#3a6090}
-.seat.side-bride{background:var(--green);border-color:var(--green);color:#fff;border-radius:8px}
-.seat.side-bride:hover{background:#457055;border-color:#457055}
-.seat.side-both{background:var(--gold);border-color:var(--gold);color:#fff;border-radius:8px}
-.seat.side-both:hover{background:#a07a3e;border-color:#a07a3e}
+.seat.side-bride{background:var(--rose);border-color:var(--rose);color:#fff;border-radius:8px}
+.seat.side-bride:hover{background:#b5676d;border-color:#b5676d}
+.seat.side-both{background:var(--yellow);border-color:var(--yellow);color:#fff;border-radius:8px}
+.seat.side-both:hover{background:#a8841f;border-color:#a8841f}
 .seat.side-none{background:var(--gray);border-color:var(--gray);color:#fff;border-radius:8px}
 .seat.side-none:hover{background:#565e6b;border-color:#565e6b}
 .seat.child::after{content:'👶';position:absolute;top:-6px;right:-6px;font-size:10px;line-height:1;background:#fff;border-radius:50%;padding:1px 2px;box-shadow:0 0 0 1px var(--border)}
@@ -188,7 +190,7 @@ tr:hover td{background:#fafafa}
     <div class="side-stats">
       <div class="side-stat b"><span class="ssn" id="ss-groom">0</span><span class="ssl">🤵 新郎方親友（估）</span></div>
       <div class="side-stat p"><span class="ssn" id="ss-bride">0</span><span class="ssl">👰 新娘方親友（估）</span></div>
-      <div class="side-stat gr"><span class="ssn" id="ss-both">0</span><span class="ssl">🤝 雙方親友（估）</span></div>
+      <div class="side-stat y"><span class="ssn" id="ss-both">0</span><span class="ssl">🤝 雙方親友（估）</span></div>
     </div>
     <div class="filters">
       <input type="text" class="si" placeholder="搜尋姓名..." oninput="renderGuests(this.value)" id="guest-search">
@@ -219,8 +221,8 @@ tr:hover td{background:#fafafa}
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <div style="display:flex;gap:8px;font-size:12px;align-items:center;color:var(--gray);flex-wrap:wrap">
           <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>新郎方
-          <span style="width:14px;height:14px;border-radius:4px;background:var(--green);display:inline-block"></span>新娘方
-          <span style="width:14px;height:14px;border-radius:4px;background:var(--gold);display:inline-block"></span>雙方朋友
+          <span style="width:14px;height:14px;border-radius:4px;background:var(--rose);display:inline-block"></span>新娘方
+          <span style="width:14px;height:14px;border-radius:4px;background:var(--yellow);display:inline-block"></span>雙方朋友
           <span style="width:14px;height:14px;border-radius:4px;background:var(--gray);display:inline-block"></span>未分類
           <span>👶兒童</span>
           <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
@@ -320,7 +322,7 @@ function renderGuests(search = '') {
   const RL = { confirmed: 'bg-b', pending: 'bp-b', decline: 'ur-b' };
   const RLB = { confirmed: '確認出席', pending: '待確認', decline: '無法出席' };
   const SI = { groom: '新郎方', bride: '新娘方', both: '雙方朋友' };
-  const SC = { groom: 'b', bride: 'gr', both: 'g' };
+  const SC = { groom: 'b', bride: '', both: 'y' };
 
   const list = guestList.filter(g => g.name).filter(g => {
     if (s && !g.name.toLowerCase().includes(s) && !(g.relation || '').toLowerCase().includes(s)) return false;
@@ -356,7 +358,7 @@ function renderGuests(search = '') {
     }
     return '<tr>'
       + '<td style="font-weight:600">' + esc(g.name) + '</td>'
-      + '<td><span class="pill ' + (SC[g.side] || 'gr') + '">' + (SI[g.side] || '—') + '</span></td>'
+      + '<td><span class="pill ' + (SC[g.side] || '') + '">' + (SI[g.side] || '—') + '</span></td>'
       + '<td><span class="badge ' + (RL[g.rsvp] || 'bp-b') + '">' + (RLB[g.rsvp] || '待確認') + '</span></td>'
       + '<td style="font-size:12px;color:var(--gray)">' + esc(attendMode) + '</td>'
       + '<td style="text-align:center">' + (g.count || 1) + '</td>'
