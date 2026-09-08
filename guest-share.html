@@ -99,10 +99,15 @@ tr:hover td{background:#fafafa}
 .seat.drag-over{border-color:var(--rose);border-style:dashed;background:var(--rose-l)}
 .seat[draggable="true"]{cursor:grab}
 .seat:hover{border-color:var(--rose);transform:scale(1.1)}
-.seat.taken{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
-.seat.taken:hover{background:#3a6090;border-color:#3a6090}
-.seat.child{background:var(--gold);border-color:var(--gold);color:#fff;border-radius:8px}
-.seat.child:hover{background:#a07a3e;border-color:#a07a3e}
+.seat.side-groom{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
+.seat.side-groom:hover{background:#3a6090;border-color:#3a6090}
+.seat.side-bride{background:var(--green);border-color:var(--green);color:#fff;border-radius:8px}
+.seat.side-bride:hover{background:#457055;border-color:#457055}
+.seat.side-both{background:var(--gold);border-color:var(--gold);color:#fff;border-radius:8px}
+.seat.side-both:hover{background:#a07a3e;border-color:#a07a3e}
+.seat.side-none{background:var(--gray);border-color:var(--gray);color:#fff;border-radius:8px}
+.seat.side-none:hover{background:#565e6b;border-color:#565e6b}
+.seat.child::after{content:'👶';position:absolute;top:-6px;right:-6px;font-size:10px;line-height:1;background:#fff;border-radius:50%;padding:1px 2px;box-shadow:0 0 0 1px var(--border)}
 
 /* SEAT MODAL */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
@@ -212,9 +217,12 @@ tr:hover td{background:#fafafa}
     <div class="sh">
       <div class="st">座位安排 <span id="seat-updated"></span></div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <div style="display:flex;gap:8px;font-size:12px;align-items:center;color:var(--gray)">
-          <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>已指派
-          <span style="width:14px;height:14px;border-radius:4px;background:var(--gold);display:inline-block"></span>兒童
+        <div style="display:flex;gap:8px;font-size:12px;align-items:center;color:var(--gray);flex-wrap:wrap">
+          <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>新郎方
+          <span style="width:14px;height:14px;border-radius:4px;background:var(--green);display:inline-block"></span>新娘方
+          <span style="width:14px;height:14px;border-radius:4px;background:var(--gold);display:inline-block"></span>雙方朋友
+          <span style="width:14px;height:14px;border-radius:4px;background:var(--gray);display:inline-block"></span>未分類
+          <span>👶兒童</span>
           <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
         </div>
         <button class="btn bgr" onclick="loadSeats()">🔄 重新整理</button>
@@ -476,7 +484,8 @@ function createSeatEl(t, side, idx, entry) {
   const el = document.createElement('div');
   const name = entry && entry.name ? entry.name : '';
   const isChild = !!(entry && entry.child);
-  el.className = 'seat' + (name ? ' taken' : '') + (name && isChild ? ' child' : '');
+  const sideClass = name ? 'side-' + (entry.side || 'none') : '';
+  el.className = 'seat' + (sideClass ? ' ' + sideClass : '') + (isChild ? ' child' : '');
   const num = idx + 1;
   if (name) {
     const short = name.length <= 6 ? name : name.slice(0, 6);
@@ -546,7 +555,7 @@ function getPickableGuests() {
     const key = g.formTs || g.name;
     if (seen.has(key)) return;
     seen.add(key);
-    list.push({ name: g.name, formTs: g.formTs, relation: g.relation, need: g.count || 1 });
+    list.push({ name: g.name, formTs: g.formTs, relation: g.relation, need: g.count || 1, side: g.side || '' });
   });
   return list;
 }
@@ -582,7 +591,7 @@ function renderPickList(search) {
     const assigned = getGuestSeatCount(g.formTs, g.name);
     const full = assigned >= g.need && !isCurrent;
     const label = esc(g.name) + (g.relation ? ' (' + esc(g.relation) + ')' : '') + ' — ' + assigned + '/' + g.need + '座' + (full ? ' ✓滿' : '');
-    const payload = JSON.stringify({ name: g.name, formTs: g.formTs }).replace(/'/g, '&#39;');
+    const payload = JSON.stringify({ name: g.name, formTs: g.formTs, side: g.side || '' }).replace(/'/g, '&#39;');
     return '<div class="pick-item"' + (full ? ' style="color:var(--gray)"' : '') + ' onclick=\'assignSeat(' + payload + ')\'>' + label + '</div>';
   }).join('');
 }

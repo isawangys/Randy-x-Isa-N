@@ -138,10 +138,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .seat.drag-over{border-color:var(--rose);border-style:dashed;background:var(--rose-l)}
 .seat[draggable="true"]{cursor:grab}
 .seat:hover{border-color:var(--rose);color:var(--rose);transform:scale(1.1)}
-.seat.taken{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
-.seat.taken:hover{background:#3a6090;border-color:#3a6090}
-.seat.child{background:var(--gold);border-color:var(--gold);color:#fff;border-radius:8px}
-.seat.child:hover{background:#a07a3e;border-color:#a07a3e}
+.seat.side-groom{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
+.seat.side-groom:hover{background:#3a6090;border-color:#3a6090}
+.seat.side-bride{background:var(--green);border-color:var(--green);color:#fff;border-radius:8px}
+.seat.side-bride:hover{background:#457055;border-color:#457055}
+.seat.side-both{background:var(--gold);border-color:var(--gold);color:#fff;border-radius:8px}
+.seat.side-both:hover{background:#a07a3e;border-color:#a07a3e}
+.seat.side-none{background:var(--gray);border-color:var(--gray);color:#fff;border-radius:8px}
+.seat.side-none:hover{background:#565e6b;border-color:#565e6b}
+.seat.child::after{content:'👶';position:absolute;top:-6px;right:-6px;font-size:10px;line-height:1;background:#fff;border-radius:50%;padding:1px 2px;box-shadow:0 0 0 1px var(--border)}
 .seat-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
 .seat:hover .seat-tooltip{opacity:1}
 .seat-aisle{display:flex;align-items:center;gap:6px;width:100%;margin:8px 0;color:var(--gray);font-size:9px;letter-spacing:1px}
@@ -352,9 +357,12 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   <div class="sh">
     <div class="st">座位安排 <span>點選座位指派賓客</span></div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <div style="display:flex;gap:8px;font-size:12px;align-items:center">
-        <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>已指派
-        <span style="width:14px;height:14px;border-radius:4px;background:var(--gold);display:inline-block"></span>兒童
+      <div style="display:flex;gap:8px;font-size:12px;align-items:center;flex-wrap:wrap">
+        <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>新郎方
+        <span style="width:14px;height:14px;border-radius:4px;background:var(--green);display:inline-block"></span>新娘方
+        <span style="width:14px;height:14px;border-radius:4px;background:var(--gold);display:inline-block"></span>雙方朋友
+        <span style="width:14px;height:14px;border-radius:4px;background:var(--gray);display:inline-block"></span>未分類
+        <span>👶兒童</span>
         <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
       </div>
       <div style="font-size:12px;color:var(--gray)" id="seat-summary">已指派 0 / 0 個座位</div>
@@ -969,8 +977,9 @@ function renderSeating() {
 function createSeatEl(t, side, idx, gid) {
   const s = document.createElement('div');
   const isChild = !!(gid && seatChildFlags[t][side][idx]);
-  s.className = 'seat' + (gid ? ' taken' : '') + (isChild ? ' child' : '');
   const g = gid ? guests.find(x => x.id === gid) : null;
+  const sideClass = g ? 'side-' + (g.side || 'none') : '';
+  s.className = 'seat' + (sideClass ? ' ' + sideClass : '') + (isChild ? ' child' : '');
   const name = g ? g.name : '';
   const num = idx + 1;
 
@@ -1484,7 +1493,7 @@ async function pushSeatsToBackend() {
       seatData[t][side].forEach((gid, idx) => {
         if (!gid) { seats[t][side].push(null); return; }
         const g = guests.find(x => x.id === gid);
-        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '', child: !!seatChildFlags[t][side][idx] } : null);
+        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '', child: !!seatChildFlags[t][side][idx], side: g.side || '' } : null);
       });
     });
   }
