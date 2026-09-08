@@ -131,6 +131,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .seat:hover{border-color:var(--rose);color:var(--rose);transform:scale(1.1)}
 .seat.taken{background:var(--blue);border-color:var(--blue);color:#fff;border-radius:8px}
 .seat.taken:hover{background:#3a6090;border-color:#3a6090}
+.seat.child{background:var(--gold);border-color:var(--gold);color:#fff;border-radius:8px}
+.seat.child:hover{background:#a07a3e;border-color:#a07a3e}
 .seat-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
 .seat:hover .seat-tooltip{opacity:1}
 .seat-aisle{display:flex;align-items:center;gap:6px;width:100%;margin:8px 0;color:var(--gray);font-size:9px;letter-spacing:1px}
@@ -335,6 +337,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div style="display:flex;gap:8px;font-size:12px;align-items:center">
         <span style="width:14px;height:14px;border-radius:4px;background:var(--blue);display:inline-block"></span>已指派
+        <span style="width:14px;height:14px;border-radius:4px;background:var(--gold);display:inline-block"></span>兒童
         <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
       </div>
       <div style="font-size:12px;color:var(--gray)" id="seat-summary">已指派 0 / 0 個座位</div>
@@ -418,12 +421,14 @@ let guests  = LS('guests')  || [];
 let timelines = LS('tl')    || getDefaultTimeline();
 let seatData  = LS('seats') || null;
 let seatsPerSide = LS('sps') || 24;
+let seatChildFlags = LS('seatChildFlags') || null; // 跟 seatData 平行的結構，記錄哪些座位是兒童座位
 const AISLE_EVERY = 12; // 每 12 個座位留一個走道，跟 guest-share.html 保持一致
 
 let editId=null, curModal=null, curSeatKey=null;
 let flt={todo:'all',bgt:'all',guest:'all'};
 
 if(!seatData) seatData = initSeats(seatsPerSide);
+if(!seatChildFlags) seatChildFlags = initChildFlags(seatsPerSide);
 
 // ═══ Default Todos ═══════════════════════════════════════════════════
 function getDefaultTodos() {
@@ -857,6 +862,13 @@ function initSeats(sps) {
   return d;
 }
 
+function initChildFlags(sps) {
+  sps=parseInt(sps)||24;
+  const d={};
+  for(let t=1;t<=4;t++) d[t]={A:Array(sps).fill(false),B:Array(sps).fill(false)};
+  return d;
+}
+
 function resizeSeats(val) {
   const sps=parseInt(val)||24;
   seatsPerSide=sps;
@@ -866,9 +878,12 @@ function resizeSeats(val) {
       const arr=seatData[t][s];
       if(arr.length<sps) { for(let i=arr.length;i<sps;i++) arr.push(null); }
       else seatData[t][s]=arr.slice(0,sps);
+      const cf=seatChildFlags[t][s];
+      if(cf.length<sps) { for(let i=cf.length;i<sps;i++) cf.push(false); }
+      else seatChildFlags[t][s]=cf.slice(0,sps);
     });
   }
-  SS('seats',seatData); pushSeatsToBackend();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend();
   renderSeating(); updateDash();
 }
 
@@ -927,7 +942,8 @@ function renderSeating() {
 
 function createSeatEl(t, side, idx, gid) {
   const s = document.createElement('div');
-  s.className = 'seat' + (gid ? ' taken' : '');
+  const isChild = !!(gid && seatChildFlags[t][side][idx]);
+  s.className = 'seat' + (gid ? ' taken' : '') + (isChild ? ' child' : '');
   const g = gid ? guests.find(x => x.id === gid) : null;
   const name = g ? g.name : '';
   const num = idx + 1;
@@ -943,7 +959,7 @@ function createSeatEl(t, side, idx, gid) {
   // Tooltip
   const tip = document.createElement('div');
   tip.className = 'seat-tooltip';
-  tip.textContent = gid ? `${name} (${['一','二','三','四'][t-1]}排${side==='A'?'左':'右'}-${num})` : `${TABLE_NAMES_SHORT[t-1]}排${side==='A'?'左':'右'}側 ${num} 號（空位）`;
+  tip.textContent = gid ? `${name}${isChild?' 👶兒童':''} (${['一','二','三','四'][t-1]}排${side==='A'?'左':'右'}-${num})` : `${TABLE_NAMES_SHORT[t-1]}排${side==='A'?'左':'右'}側 ${num} 號（空位）`;
   s.appendChild(tip);
 
   s.onclick = () => openSeatModal(t, side, idx, gid);
@@ -990,12 +1006,17 @@ function moveSeatContents(src, dst) {
   const srcGid = seatData[src.t][src.side][src.idx];
   const dstGid = seatData[dst.t][dst.side][dst.idx];
   if (!srcGid) return; // 來源沒有人，沒什麼好搬的
+  const srcChild = seatChildFlags[src.t][src.side][src.idx];
+  const dstChild = seatChildFlags[dst.t][dst.side][dst.idx];
   seatData[dst.t][dst.side][dst.idx] = srcGid;
   seatData[src.t][src.side][src.idx] = dstGid;
+  seatChildFlags[dst.t][dst.side][dst.idx] = srcChild;
+  seatChildFlags[src.t][src.side][src.idx] = dstChild;
 
   recomputeSeatLabels();
   SS('guests', guests);
   SS('seats', seatData);
+  SS('seatChildFlags', seatChildFlags);
   pushSeatsToBackend();
   pushGuestsToBackend();
   renderSeating();
@@ -1031,6 +1052,7 @@ function openSeatModal(t,side,idx,currentGid) {
   }).join('');
 
   const curG=currentGid?guests.find(x=>x.id===currentGid):null;
+  const curIsChild=!!seatChildFlags[t][side][idx];
   document.getElementById('sm-body').innerHTML=`
     <div class="fg">
       <label>選擇賓客（括號內為已指派 / 需求座位數）</label>
@@ -1042,12 +1064,25 @@ function openSeatModal(t,side,idx,currentGid) {
     ${curG?`<div style="font-size:12px;color:var(--blue);margin-top:6px;padding:8px;background:var(--blue-l);border-radius:6px">
       目前：<strong>${curG.name}</strong>（共 ${curG.count||1} 人，已指派 ${getGuestSeatCount(curG.id)} 個座位）
     </div>`:''}
+    <label id="seat-child-wrap" style="font-size:12px;display:none;align-items:center;gap:6px;margin-top:8px">
+      <input type="checkbox" id="seat-child-cb" ${curIsChild?'checked':''}> 這是兒童座位
+    </label>
     <div id="seat-warn" style="font-size:12px;color:#dc2626;margin-top:6px;display:none"></div>
   `;
+
+  const guestHasChildren=g=>!!g && (g.hasChildren==='是' || (parseInt(g.childCount)||0)>0);
+  const updateChildWrap=gid=>{
+    const g=guests.find(x=>x.id===gid);
+    const wrap=document.getElementById('seat-child-wrap');
+    wrap.style.display = guestHasChildren(g) ? 'flex' : 'none';
+    if(!guestHasChildren(g)) document.getElementById('seat-child-cb').checked=false;
+  };
+  updateChildWrap(currentGid);
 
   // Live warning when selecting a fully-seated guest
   document.getElementById('seat-guest-sel').onchange=function() {
     const gid=this.value;
+    updateChildWrap(gid);
     if(!gid){document.getElementById('seat-warn').style.display='none';return;}
     const g=guests.find(x=>x.id===gid);
     if(!g) return;
@@ -1067,25 +1102,29 @@ function openSeatModal(t,side,idx,currentGid) {
 
 function saveSeat() {
   const sel=document.getElementById('seat-guest-sel').value;
+  const childCb=document.getElementById('seat-child-cb');
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=sel||null;
+  seatChildFlags[seatCtx.t][seatCtx.s][seatCtx.idx]=!!(sel && childCb && childCb.checked);
   recomputeSeatLabels();
   SS('guests',guests);
-  SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend(); pushGuestsToBackend();
   closeSeatModal(); renderSeating();
 }
 
 function clearSeat() {
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=null;
+  seatChildFlags[seatCtx.t][seatCtx.s][seatCtx.idx]=false;
   recomputeSeatLabels();
   SS('guests',guests);
-  SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend(); closeSeatModal(); renderSeating();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend(); pushGuestsToBackend(); closeSeatModal(); renderSeating();
 }
 
 function clearAllSeats() {
   if(!confirm('確定要清除所有座位安排嗎？')) return;
   Object.values(seatData).forEach(t=>['A','B'].forEach(s=>t[s].fill(null)));
+  Object.values(seatChildFlags).forEach(t=>['A','B'].forEach(s=>t[s].fill(false)));
   guests.forEach(g=>{g.seat=''}); SS('guests',guests);
-  SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend(); renderSeating();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend(); pushGuestsToBackend(); renderSeating();
 }
 
 function closeSeatModal(e) {
@@ -1416,10 +1455,10 @@ async function pushSeatsToBackend() {
   for (let t = 1; t <= 4; t++) {
     seats[t] = { A: [], B: [] };
     ['A','B'].forEach(side => {
-      seatData[t][side].forEach(gid => {
+      seatData[t][side].forEach((gid, idx) => {
         if (!gid) { seats[t][side].push(null); return; }
         const g = guests.find(x => x.id === gid);
-        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '' } : null);
+        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '', child: !!seatChildFlags[t][side][idx] } : null);
       });
     });
   }
@@ -1441,8 +1480,10 @@ async function pullSeatsFromBackend() {
 
     const sps = json.seatsPerSide || seatsPerSide;
     const newSeatData = {};
+    const newChildFlags = {};
     for (let t = 1; t <= 4; t++) {
       newSeatData[t] = { A: [], B: [] };
+      newChildFlags[t] = { A: [], B: [] };
       ['A','B'].forEach(side => {
         const arr = (json.seats[t] && json.seats[t][side]) || [];
         newSeatData[t][side] = arr.map(entry => {
@@ -1450,11 +1491,14 @@ async function pullSeatsFromBackend() {
           const g = guests.find(x => (entry.formTs && x.formTs === entry.formTs) || x.name === entry.name);
           return g ? g.id : null;
         });
+        newChildFlags[t][side] = arr.map(entry => !!(entry && entry.child));
       });
     }
     seatData = newSeatData;
+    seatChildFlags = newChildFlags;
     seatsPerSide = sps;
     SS('seats', seatData);
+    SS('seatChildFlags', seatChildFlags);
     SS('sps', seatsPerSide);
     recomputeSeatLabels(); // 座位可能是在 guest-share.html 上改的，本機的「桌/座位」欄位要跟著重算
     SS('guests', guests);
