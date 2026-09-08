@@ -25,6 +25,15 @@ header .sub{font-size:12px;opacity:.85;margin-top:3px}
 .cbox .days{font-size:30px;font-weight:800;line-height:1}
 .cbox .cl{font-size:11px;opacity:.9;margin-top:2px}
 
+/* QUICK MENU */
+.menu-wrap{position:relative}
+.menu-btn{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.menu-btn:hover{background:rgba(255,255,255,.3)}
+.menu-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:210px;padding:6px;z-index:100}
+.menu-dropdown.open{display:block}
+.menu-dropdown a{display:block;padding:9px 12px;border-radius:6px;color:var(--text);text-decoration:none;font-size:13px;font-weight:600}
+.menu-dropdown a:hover{background:var(--gray-l)}
+
 /* DASHBOARD */
 .dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px 0}
 .sc{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);border-left:4px solid var(--rose)}
@@ -157,9 +166,17 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
     <h1>💍 Isa & Randy 婚禮管理</h1>
     <div class="sub">2026 年 12 月 13 日（週日）· 早上證婚 ＋ 中午半自助宴客 · 約 180 位賓客</div>
   </div>
-  <div class="cbox">
-    <div class="days" id="cd">—</div>
-    <div class="cl">距離婚禮天數</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="menu-wrap">
+      <button class="menu-btn" onclick="toggleQuickMenu(event)">🔗 快速連結 ▾</button>
+      <div class="menu-dropdown" id="quick-menu">
+        <a href="guest-share.html" target="_blank" rel="noopener">👥 賓客名單分享頁</a>
+      </div>
+    </div>
+    <div class="cbox">
+      <div class="days" id="cd">—</div>
+      <div class="cl">距離婚禮天數</div>
+    </div>
   </div>
 </header>
 
@@ -560,6 +577,15 @@ function updateCountdown() {
   document.getElementById('cd').textContent=days>0?days:'🎉';
 }
 updateCountdown();
+
+// ═══ Quick Menu ══════════════════════════════════════════════════════
+function toggleQuickMenu(e) {
+  e.stopPropagation();
+  document.getElementById('quick-menu').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('quick-menu')?.classList.remove('open');
+});
 
 // ═══ Tab ══════════════════════════════════════════════════════════════
 function switchTab(tab,btn) {
