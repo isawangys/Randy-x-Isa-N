@@ -972,6 +972,19 @@ function createSeatEl(t, side, idx, gid) {
 const TABLE_NAMES_SHORT = ['一','二','三','四'];
 
 // 拖拉移動／交換兩個座位的內容
+// 依目前的 seatData 重新算出每位賓客的「桌/座位」文字標籤（例：第一排左-3、第二排右-5）
+function recomputeSeatLabels() {
+  const labelsByGid = {};
+  for (let t = 1; t <= 4; t++) ['A','B'].forEach(s => {
+    (seatData[t] && seatData[t][s] || []).forEach((gid, i) => {
+      if (!gid) return;
+      const label = `第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`;
+      (labelsByGid[gid] = labelsByGid[gid] || []).push(label);
+    });
+  });
+  guests.forEach(g => { g.seat = (labelsByGid[g.id] || []).join('、'); });
+}
+
 function moveSeatContents(src, dst) {
   if (src.t === dst.t && src.side === dst.side && src.idx === dst.idx) return;
   const srcGid = seatData[src.t][src.side][src.idx];
@@ -980,16 +993,7 @@ function moveSeatContents(src, dst) {
   seatData[dst.t][dst.side][dst.idx] = srcGid;
   seatData[src.t][src.side][src.idx] = dstGid;
 
-  [srcGid, dstGid].filter(Boolean).forEach(gid => {
-    const g = guests.find(x => x.id === gid);
-    if (!g) return;
-    const labels = [];
-    for (let tt = 1; tt <= 4; tt++) ['A','B'].forEach(ss => {
-      seatData[tt][ss].forEach((id2, i) => { if (id2 === gid) labels.push(`第${TABLE_NAMES_SHORT[tt-1]}排${ss==='A'?'左':'右'}-${i+1}`); });
-    });
-    g.seat = labels.join('、');
-  });
-
+  recomputeSeatLabels();
   SS('guests', guests);
   SS('seats', seatData);
   pushSeatsToBackend();
@@ -1063,52 +1067,17 @@ function openSeatModal(t,side,idx,currentGid) {
 
 function saveSeat() {
   const sel=document.getElementById('seat-guest-sel').value;
-  // Remove old occupant of THIS seat only (not all seats of that guest)
-  const old=seatData[seatCtx.t][seatCtx.s][seatCtx.idx];
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=sel||null;
-  // Update seat label on guest record
-  if(sel) {
-    const g=guests.find(x=>x.id===sel);
-    if(g) {
-      // Collect all seat labels for this guest
-      const labels=[];
-      for(let t=1;t<=4;t++) ['A','B'].forEach(s=>{
-        seatData[t][s].forEach((gid,i)=>{ if(gid===sel) labels.push(`第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`); });
-      });
-      g.seat=labels.join('、');
-      SS('guests',guests);
-    }
-  }
-  if(old && old!==sel) {
-    // Update old guest's seat label
-    const og=guests.find(x=>x.id===old);
-    if(og) {
-      const labels=[];
-      for(let t=1;t<=4;t++) ['A','B'].forEach(s=>{
-        seatData[t][s].forEach((gid,i)=>{ if(gid===old) labels.push(`第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`); });
-      });
-      og.seat=labels.join('、');
-      SS('guests',guests);
-    }
-  }
+  recomputeSeatLabels();
+  SS('guests',guests);
   SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend();
   closeSeatModal(); renderSeating();
 }
 
 function clearSeat() {
-  const cur=seatData[seatCtx.t][seatCtx.s][seatCtx.idx];
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=null;
-  if(cur) {
-    const g=guests.find(x=>x.id===cur);
-    if(g) {
-      const labels=[];
-      for(let t=1;t<=4;t++) ['A','B'].forEach(s=>{
-        seatData[t][s].forEach((gid,i)=>{ if(gid===cur) labels.push(`第${TABLE_NAMES_SHORT[t-1]}排${s==='A'?'左':'右'}-${i+1}`); });
-      });
-      g.seat=labels.join('、');
-      SS('guests',guests);
-    }
-  }
+  recomputeSeatLabels();
+  SS('guests',guests);
   SS('seats',seatData); pushSeatsToBackend(); pushGuestsToBackend(); closeSeatModal(); renderSeating();
 }
 
@@ -1351,15 +1320,11 @@ async function syncFromGSheet() {
     const json = await resp.json();
     if (!json.success) throw new Error(json.error || '未知錯誤');
 
-    let added = 0, skipped = 0, updated = 0;
+    let added = 0, updated = 0;
     for (const row of (json.data || [])) {
       const ts = findVal(row, ['時間戳記', 'Timestamp']);
       const name = findVal(row, ['名字', '姓名']);
       if (!name) continue;
-
-      // 用「時間戳記」去重＋比對同一份填答是否已存在（同一人重填表單會視為更新最新一筆）
-      const existing = ts ? guests.find(g => g.formTs === ts) : null;
-      if (existing) { skipped++; continue; }
 
       const email = findVal(row, ['Email']);
       const relation = findVal(row, ['與新人的關係']);
@@ -1378,6 +1343,29 @@ async function syncFromGSheet() {
       const afterParty = findVal(row, ['After Party']);
       const blessing = findVal(row, ['祝福話語']);
       const songRequest = findVal(row, ['婚禮歌單']);
+      const count = parseInt(lunchCount) || parseInt(ceremonyCount) || 1;
+
+      // 這些欄位直接反映表單／試算表的內容，每次同步都用最新值覆蓋（不含邀請方／出席狀態，
+      // 那兩個是系統推論出來的，怕蓋掉你手動覆核修正過的結果，只有新賓客才會推論一次）
+      const sheetFields = {
+        name, relation, contact: email, email, count,
+        mainCourse, ceremonyAttend,
+        ceremonyCount: ceremonyCount ? parseInt(ceremonyCount) : '',
+        dietary, hasChildren,
+        childCount: childCount ? parseInt(childCount) : '',
+        child0to80: child0to80 ? parseInt(child0to80) : '',
+        child80to100: child80to100 ? parseInt(child80to100) : '',
+        child100to140: child100to140 ? parseInt(child100to140) : '',
+        childSeatNeed, afterParty, blessing, songRequest,
+      };
+
+      // 用「時間戳記」去重＋比對同一份填答是否已存在
+      const existing = ts ? guests.find(g => g.formTs === ts) : null;
+      if (existing) {
+        Object.assign(existing, sheetFields);
+        updated++;
+        continue;
+      }
 
       // 出席狀態：表單沒有固定選項可對照，用關鍵字判斷（這是推論，非精準比對，同步後請人工覆核）
       let rsvp = 'pending';
@@ -1390,39 +1378,18 @@ async function syncFromGSheet() {
       else if (/新娘/.test(relation)) side = 'bride';
       else if (/雙方/.test(relation)) side = 'both';
 
-      const count = parseInt(lunchCount) || parseInt(ceremonyCount) || 1;
-
       guests.push({
         id: uid(),
-        name,
+        side, rsvp,
+        note: '', seat: '', formTs: ts,
+        ...sheetFields,
         relation: relation || '（Google 表單）',
-        side,
-        rsvp,
-        count,
-        contact: email,
-        email,
-        mainCourse,
-        ceremonyAttend,
-        ceremonyCount: ceremonyCount ? parseInt(ceremonyCount) : '',
-        dietary,
-        hasChildren,
-        childCount: childCount ? parseInt(childCount) : '',
-        child0to80: child0to80 ? parseInt(child0to80) : '',
-        child80to100: child80to100 ? parseInt(child80to100) : '',
-        child100to140: child100to140 ? parseInt(child100to140) : '',
-        childSeatNeed,
-        afterParty,
-        blessing,
-        songRequest,
-        note: '',
-        seat: '',
-        formTs: ts,
       });
       added++;
     }
 
-    if (added > 0) { SS('guests', guests); renderGuest(); updateDash(); pushGuestsToBackend(); }
-    alert(`✅ 同步完成！\n新增 ${added} 位 ／ 略過 ${skipped} 位（已存在）\n\n⚠️ 提醒：「邀請方（新郎／新娘）」與「出席狀態」是系統依表單文字自動判斷，請到賓客名單覆核一下，不確定的請手動修正。`);
+    if (added > 0 || updated > 0) { SS('guests', guests); renderGuest(); updateDash(); pushGuestsToBackend(); }
+    alert(`✅ 同步完成！\n新增 ${added} 位 ／ 更新 ${updated} 位既有賓客的資料\n\n⚠️ 提醒：「邀請方（新郎／新娘）」與「出席狀態」只有新加入的賓客才會用表單文字自動判斷，既有賓客不會被覆蓋，請到賓客名單覆核新加入的部分。`);
   } catch (err) {
     alert(`❌ 同步失敗：${err.message}\n\n請確認：\n1. 網址正確\n2. Apps Script 存取設定為「所有人」`);
   } finally {
@@ -1489,6 +1456,9 @@ async function pullSeatsFromBackend() {
     seatsPerSide = sps;
     SS('seats', seatData);
     SS('sps', seatsPerSide);
+    recomputeSeatLabels(); // 座位可能是在 guest-share.html 上改的，本機的「桌/座位」欄位要跟著重算
+    SS('guests', guests);
+    renderGuest();
     renderSeating();
   } catch (err) {
     console.warn('座位讀取失敗', err);
