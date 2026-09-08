@@ -347,7 +347,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   <div style="overflow-x:auto">
   <table>
     <thead><tr>
-      <th>姓名</th><th>與新人關係</th><th>邀請方</th><th>出席狀態</th><th>出席方式</th><th>人數</th><th>飲食/主餐</th><th>兒童</th><th>桌/座位</th><th>聯絡方式</th><th>備註</th><th style="width:90px">操作</th>
+      <th>姓名</th><th>與新人關係</th><th>出席狀態</th><th>出席方式</th><th>人數</th><th>飲食/主餐</th><th>兒童</th><th>桌/座位</th><th>聯絡方式</th><th>備註</th><th style="width:90px">操作</th>
     </tr></thead>
     <tbody id="guest-body"></tbody>
   </table>
@@ -798,6 +798,12 @@ function resetBudgetDefaults() {
 }
 
 // ═══ GUEST Render ════════════════════════════════════════════════════
+function renderRelationCell(g, SI) {
+  const spc = g.side==='groom'?'b' : g.side==='bride'?'' : g.side==='both'?'y' : null;
+  if (spc===null) return g.relation||'—';
+  return `<span class="pill ${spc}">${g.relation||SI[g.side]}</span>`;
+}
+
 function renderGuest(search='') {
   const s=search.toLowerCase();
   const RL={confirmed:'bg-b',pending:'bp-b',decline:'ur-b'};
@@ -814,7 +820,7 @@ function renderGuest(search='') {
     return true;
   });
   const tb=document.getElementById('guest-body');
-  if(!list.length){tb.innerHTML='<tr><td colspan="12"><div class="empty"><div class="ei">👥</div><p>尚未新增賓客</p></div></td></tr>';return;}
+  if(!list.length){tb.innerHTML='<tr><td colspan="11"><div class="empty"><div class="ei">👥</div><p>尚未新增賓客</p></div></td></tr>';return;}
   tb.innerHTML=list.map(g=>{
     const ca=g.ceremonyAttend||'';
     const attendMode = /僅參加午宴/.test(ca) ? '僅午宴'
@@ -834,8 +840,7 @@ function renderGuest(search='') {
     }
     return `<tr>
     <td style="font-weight:600">${g.name}</td>
-    <td style="font-size:12px">${g.relation||'—'}</td>
-    <td><span class="pill ${g.side==='groom'?'b':g.side==='both'?'y':''}">${SI[g.side]||'—'}</span></td>
+    <td style="font-size:12px">${renderRelationCell(g, SI)}</td>
     <td><span class="badge ${RL[g.rsvp]||'bp-b'}">${RLB[g.rsvp]||'待確認'}</span></td>
     <td style="font-size:12px;color:var(--gray)">${attendMode}</td>
     <td style="text-align:center">${g.count||1}</td>
@@ -1435,10 +1440,20 @@ async function syncFromGSheet() {
         childSeatNeed, afterParty, blessing, songRequest,
       };
 
+      // 邀請方：表單未收集，嘗試從「與新人的關係」文字判斷新郎/新娘/雙方，判斷不出來則留白待人工補上
+      const inferSide = rel => {
+        if (/新郎/.test(rel)) return 'groom';
+        if (/新娘/.test(rel)) return 'bride';
+        if (/雙方/.test(rel)) return 'both';
+        return '';
+      };
+
       // 用「時間戳記」去重＋比對同一份填答是否已存在
       const existing = ts ? guests.find(g => g.formTs === ts) : null;
       if (existing) {
         Object.assign(existing, sheetFields);
+        // 邀請方還沒被分類過（空白）才補判斷；已經有值（不管是自動判斷還是你手動改過的）一律不動
+        if (!existing.side) existing.side = inferSide(relation);
         updated++;
         continue;
       }
@@ -1448,11 +1463,7 @@ async function syncFromGSheet() {
       if (/無法|不克|不能|不出席|拒絕/.test(attendAns)) rsvp = 'decline';
       else if (/可以|能|出席|會/.test(attendAns)) rsvp = 'confirmed';
 
-      // 邀請方：表單未收集，嘗試從「與新人的關係」文字判斷新郎/新娘/雙方，判斷不出來則留白待人工補上
-      let side = '';
-      if (/新郎/.test(relation)) side = 'groom';
-      else if (/新娘/.test(relation)) side = 'bride';
-      else if (/雙方/.test(relation)) side = 'both';
+      const side = inferSide(relation);
 
       guests.push({
         id: uid(),
@@ -1465,7 +1476,7 @@ async function syncFromGSheet() {
     }
 
     if (added > 0 || updated > 0) { SS('guests', guests); renderGuest(); updateDash(); pushGuestsToBackend(); }
-    alert(`✅ 同步完成！\n新增 ${added} 位 ／ 更新 ${updated} 位既有賓客的資料\n\n⚠️ 提醒：「邀請方（新郎／新娘）」與「出席狀態」只有新加入的賓客才會用表單文字自動判斷，既有賓客不會被覆蓋，請到賓客名單覆核新加入的部分。`);
+    alert(`✅ 同步完成！\n新增 ${added} 位 ／ 更新 ${updated} 位既有賓客的資料\n\n⚠️ 提醒：「邀請方」還沒分類（未分類）的賓客，這次會嘗試重新用表單文字判斷；已經有分類的（不管是自動判斷還是你手動改過的）都不會被覆蓋。「出席狀態」只有新加入的賓客才會自動判斷，請到賓客名單覆核。`);
   } catch (err) {
     alert(`❌ 同步失敗：${err.message}\n\n請確認：\n1. 網址正確\n2. Apps Script 存取設定為「所有人」`);
   } finally {

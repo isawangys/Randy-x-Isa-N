@@ -205,7 +205,7 @@ tr:hover td{background:#fafafa}
     <div class="tblwrap">
     <table>
       <thead><tr>
-        <th>姓名</th><th>邀請方</th><th>出席狀態</th><th>參加場次</th><th>人數</th>
+        <th>姓名</th><th>與新人關係</th><th>出席狀態</th><th>參加場次</th><th>人數</th>
         <th>餐點</th><th>兒童</th><th>聯絡方式</th><th>備註/歌單</th>
       </tr></thead>
       <tbody id="guest-body"><tr><td colspan="9"><div class="empty"><div class="ei">⏳</div><p>載入中...</p></div></td></tr></tbody>
@@ -317,12 +317,17 @@ async function loadGuests() {
   }
 }
 
+function renderRelationCell(g, SI) {
+  const spc = g.side === 'groom' ? 'b' : g.side === 'bride' ? '' : g.side === 'both' ? 'y' : null;
+  if (spc === null) return esc(g.relation || '—');
+  return '<span class="pill ' + spc + '">' + esc(g.relation || SI[g.side]) + '</span>';
+}
+
 function renderGuests(search = '') {
   const s = (search || '').toLowerCase();
   const RL = { confirmed: 'bg-b', pending: 'bp-b', decline: 'ur-b' };
   const RLB = { confirmed: '確認出席', pending: '待確認', decline: '無法出席' };
   const SI = { groom: '新郎方', bride: '新娘方', both: '雙方朋友' };
-  const SC = { groom: 'b', bride: '', both: 'y' };
 
   const list = guestList.filter(g => g.name).filter(g => {
     if (s && !g.name.toLowerCase().includes(s) && !(g.relation || '').toLowerCase().includes(s)) return false;
@@ -358,7 +363,7 @@ function renderGuests(search = '') {
     }
     return '<tr>'
       + '<td style="font-weight:600">' + esc(g.name) + '</td>'
-      + '<td><span class="pill ' + (SC[g.side] || '') + '">' + (SI[g.side] || '—') + '</span></td>'
+      + '<td style="font-size:12px">' + renderRelationCell(g, SI) + '</td>'
       + '<td><span class="badge ' + (RL[g.rsvp] || 'bp-b') + '">' + (RLB[g.rsvp] || '待確認') + '</span></td>'
       + '<td style="font-size:12px;color:var(--gray)">' + esc(attendMode) + '</td>'
       + '<td style="text-align:center">' + (g.count || 1) + '</td>'
