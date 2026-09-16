@@ -112,6 +112,8 @@ tr:hover td{background:#fafafa}
 .seat.placeholder{background:#fff;border-color:var(--gray);border-style:dashed;color:var(--gray);border-radius:8px}
 .seat.placeholder:hover{border-color:var(--text);color:var(--text)}
 .seat.child::after{content:'👶';position:absolute;top:-6px;right:-6px;font-size:10px;line-height:1;background:#fff;border-radius:50%;padding:1px 2px;box-shadow:0 0 0 1px var(--border)}
+.seat.batch-selected{outline:3px solid var(--rose);outline-offset:1px}
+.seat-batch-badge{position:absolute;top:-7px;left:-7px;background:var(--rose);color:#fff;border-radius:50%;width:15px;height:15px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
 
 /* SEAT MODAL */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
@@ -230,10 +232,16 @@ tr:hover td{background:#fafafa}
           <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px dashed var(--gray);display:inline-block"></span>佔位
           <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
         </div>
+        <button class="btn bgh" id="batch-toggle-btn" onclick="toggleBatchMode()">📦 批次搬移</button>
         <button class="btn bgr" onclick="loadSeats()">🔄 重新整理</button>
       </div>
     </div>
     <div id="seat-err"></div>
+    <div id="batch-status-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:var(--rose-l);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:13px;color:var(--rose);font-weight:600">
+      <span id="batch-status-text"></span>
+      <button class="btn bgr" id="batch-move-btn" onclick="startBatchMove()" hidden>開始搬移</button>
+      <button class="btn bgh" onclick="exitBatchMode()">取消</button>
+    </div>
     <div style="text-align:center;color:var(--gray);font-size:11px;margin-bottom:14px;letter-spacing:2px">🎬 舞台 &amp; 新人進場方向</div>
     <div class="seating-tables" id="seating-area"></div>
     <div style="text-align:center;color:var(--gray);font-size:11px;margin-top:14px;letter-spacing:2px">🚪 賓客入口</div>
@@ -411,6 +419,11 @@ function isPlaceholder(v) { return !!v && typeof v === 'object' && v.placeholder
 let seatSnapshot = null; // { seatsPerSide, seats:{1:{A:[...],B:[...]},...} }
 let seatCtx = { t: null, side: null, idx: null };
 
+// 批次搬移座位：null=未啟用, 'select'=選取來源座位中, 'destination'=依序點選目的地中
+let batchMode = null;
+let batchSelection = []; // [{t,side,idx}] 依點選順序記錄
+let batchDestIndex = 0;
+
 function emptySeats(sps) {
   const seats = {};
   for (let t = 1; t <= 4; t++) seats[t] = { A: Array(sps).fill(null), B: Array(sps).fill(null) };
@@ -504,7 +517,8 @@ function createSeatEl(t, side, idx, entry) {
   const name = placeholder ? entry.label : (entry && entry.name ? entry.name : '');
   const isChild = !!(entry && !placeholder && entry.child);
   const sideClass = (name && !placeholder) ? 'side-' + (entry.side || 'none') : '';
-  el.className = 'seat' + (placeholder ? ' placeholder' : (sideClass ? ' ' + sideClass : '')) + (isChild ? ' child' : '');
+  const batchIdx = batchSelection.findIndex(x => x.t === t && x.side === side && x.idx === idx);
+  el.className = 'seat' + (placeholder ? ' placeholder' : (sideClass ? ' ' + sideClass : '')) + (isChild ? ' child' : '') + (batchIdx !== -1 ? ' batch-selected' : '');
   const num = idx + 1;
   if (name) {
     const short = name.length <= 6 ? name : name.slice(0, 6);
@@ -516,21 +530,35 @@ function createSeatEl(t, side, idx, entry) {
   tip.className = 'seat-tooltip';
   tip.textContent = placeholder ? (name + '（佔位，尚未確認）') : name ? (name + (isChild ? ' 👶兒童' : '')) : (num + ' 號（空位）');
   el.appendChild(tip);
-  el.onclick = () => openSeatModal(t, side, idx);
 
-  // 拖拉調整座位：已指派或佔位的座位可以被拖，任何座位（含空位）都可以當放置目標
-  el.draggable = !!entry;
+  if (batchIdx !== -1) {
+    const badge = document.createElement('div');
+    badge.className = 'seat-batch-badge';
+    badge.textContent = batchIdx + 1;
+    el.appendChild(badge);
+  }
+
+  el.onclick = () => {
+    if (batchMode === 'select') { toggleBatchSelect(t, side, idx, entry); return; }
+    if (batchMode === 'destination') { pickBatchDestination(t, side, idx); return; }
+    openSeatModal(t, side, idx);
+  };
+
+  // 拖拉調整座位：已指派或佔位的座位可以被拖，任何座位（含空位）都可以當放置目標（批次模式時關閉，避免互相干擾）
+  el.draggable = !!entry && !batchMode;
   el.addEventListener('dragstart', e => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', JSON.stringify({ t, side, idx }));
   });
   el.addEventListener('dragover', e => {
+    if (batchMode) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     el.classList.add('drag-over');
   });
   el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
   el.addEventListener('drop', e => {
+    if (batchMode) return;
     e.preventDefault();
     el.classList.remove('drag-over');
     const src = JSON.parse(e.dataTransfer.getData('text/plain'));
@@ -550,6 +578,74 @@ async function moveSeatContents(src, dst) {
   seatSnapshot.seats[src.t][src.side][src.idx] = dstEntry;
   renderSeating();
   await saveSeatsToBackend();
+}
+
+// ═══ 批次搬移座位 ════════════════════════════════════════════════════
+function toggleBatchMode() {
+  if (batchMode) { exitBatchMode(); return; }
+  batchMode = 'select';
+  batchSelection = [];
+  batchDestIndex = 0;
+  updateBatchStatusBar();
+  renderSeating();
+}
+
+function toggleBatchSelect(t, side, idx, entry) {
+  const i = batchSelection.findIndex(x => x.t === t && x.side === side && x.idx === idx);
+  if (i !== -1) {
+    batchSelection.splice(i, 1);
+  } else {
+    if (!entry) { alert('請選擇已安排賓客或佔位的座位'); return; }
+    batchSelection.push({ t, side, idx });
+  }
+  updateBatchStatusBar();
+  renderSeating();
+}
+
+function startBatchMove() {
+  if (batchSelection.length === 0) return;
+  batchMode = 'destination';
+  batchDestIndex = 0;
+  updateBatchStatusBar();
+  renderSeating();
+}
+
+async function pickBatchDestination(t, side, idx) {
+  const src = batchSelection[batchDestIndex];
+  await moveSeatContents(src, { t, side, idx }); // moveSeatContents 內部已經會 renderSeating()
+  batchDestIndex++;
+  if (batchDestIndex >= batchSelection.length) exitBatchMode();
+  else updateBatchStatusBar();
+}
+
+function exitBatchMode() {
+  batchMode = null;
+  batchSelection = [];
+  batchDestIndex = 0;
+  updateBatchStatusBar();
+  renderSeating();
+}
+
+function updateBatchStatusBar() {
+  const bar = document.getElementById('batch-status-bar');
+  const text = document.getElementById('batch-status-text');
+  const moveBtn = document.getElementById('batch-move-btn');
+  const toggleBtn = document.getElementById('batch-toggle-btn');
+  if (!batchMode) {
+    bar.style.display = 'none';
+    toggleBtn.textContent = '📦 批次搬移';
+    return;
+  }
+  bar.style.display = 'flex';
+  if (batchMode === 'select') {
+    toggleBtn.textContent = '📦 批次搬移中…';
+    text.textContent = `已選取 ${batchSelection.length} 個座位（點座位可加入/取消選取，順序就是等一下搬移的順序）`;
+    moveBtn.hidden = batchSelection.length === 0;
+  } else {
+    toggleBtn.textContent = '📦 批次搬移中…';
+    text.textContent = `請依序點選新位置：第 ${batchDestIndex + 1} / ${batchSelection.length} 個`;
+    moveBtn.hidden = true;
+  }
 }
 
 // ═══ 座位指派 Modal ═══════════════════════════════════════════════
