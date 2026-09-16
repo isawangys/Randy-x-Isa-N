@@ -109,6 +109,8 @@ tr:hover td{background:#fafafa}
 .seat.side-both:hover{background:#a8841f;border-color:#a8841f}
 .seat.side-none{background:var(--gray);border-color:var(--gray);color:#fff;border-radius:8px}
 .seat.side-none:hover{background:#565e6b;border-color:#565e6b}
+.seat.placeholder{background:#fff;border-color:var(--gray);border-style:dashed;color:var(--gray);border-radius:8px}
+.seat.placeholder:hover{border-color:var(--text);color:var(--text)}
 .seat.child::after{content:'👶';position:absolute;top:-6px;right:-6px;font-size:10px;line-height:1;background:#fff;border-radius:50%;padding:1px 2px;box-shadow:0 0 0 1px var(--border)}
 
 /* SEAT MODAL */
@@ -225,6 +227,7 @@ tr:hover td{background:#fafafa}
           <span style="width:14px;height:14px;border-radius:4px;background:var(--yellow);display:inline-block"></span>雙方朋友
           <span style="width:14px;height:14px;border-radius:4px;background:var(--gray);display:inline-block"></span>未分類
           <span>👶兒童</span>
+          <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px dashed var(--gray);display:inline-block"></span>佔位
           <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2px solid var(--border);display:inline-block"></span>空位
         </div>
         <button class="btn bgr" onclick="loadSeats()">🔄 重新整理</button>
@@ -250,6 +253,13 @@ tr:hover td{background:#fafafa}
     <label style="font-size:12px;display:flex;align-items:center;gap:6px;margin-top:8px">
       <input type="checkbox" id="seat-child-cb"> 指派為兒童座位（點選賓客前先勾選）
     </label>
+    <div class="fg" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <label>或者：先佔位（人還沒填表單，但想先留位子）</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" class="si" id="seat-placeholder-input" placeholder="例：新郎大學同學" style="flex:1;margin-bottom:0">
+        <button type="button" class="btn bgh bsm" onclick="assignPlaceholder()">佔位</button>
+      </div>
+    </div>
     <div class="ma">
       <button class="btn bgh" id="seat-clear-btn" onclick="assignSeat(null)" hidden>清除此座位</button>
       <button class="btn bgh" onclick="closeSeatModal()">取消</button>
@@ -397,6 +407,7 @@ function esc(str) {
 // ═══ 座位安排：即時讀寫 Apps Script 的座位表（跟 admin 頁面共用同一份後端）═══
 const TABLE_NAMES = ['第一排', '第二排', '第三排', '第四排'];
 const AISLE_EVERY = 12; // 每 12 個座位留一個走道，跟 wedding_1.html 保持一致
+function isPlaceholder(v) { return !!v && typeof v === 'object' && v.placeholder === true; }
 let seatSnapshot = null; // { seatsPerSide, seats:{1:{A:[...],B:[...]},...} }
 let seatCtx = { t: null, side: null, idx: null };
 
@@ -489,10 +500,11 @@ function renderSeating() {
 
 function createSeatEl(t, side, idx, entry) {
   const el = document.createElement('div');
-  const name = entry && entry.name ? entry.name : '';
-  const isChild = !!(entry && entry.child);
-  const sideClass = name ? 'side-' + (entry.side || 'none') : '';
-  el.className = 'seat' + (sideClass ? ' ' + sideClass : '') + (isChild ? ' child' : '');
+  const placeholder = isPlaceholder(entry);
+  const name = placeholder ? entry.label : (entry && entry.name ? entry.name : '');
+  const isChild = !!(entry && !placeholder && entry.child);
+  const sideClass = (name && !placeholder) ? 'side-' + (entry.side || 'none') : '';
+  el.className = 'seat' + (placeholder ? ' placeholder' : (sideClass ? ' ' + sideClass : '')) + (isChild ? ' child' : '');
   const num = idx + 1;
   if (name) {
     const short = name.length <= 6 ? name : name.slice(0, 6);
@@ -502,12 +514,12 @@ function createSeatEl(t, side, idx, entry) {
   }
   const tip = document.createElement('div');
   tip.className = 'seat-tooltip';
-  tip.textContent = name ? (name + (isChild ? ' 👶兒童' : '')) : (num + ' 號（空位）');
+  tip.textContent = placeholder ? (name + '（佔位，尚未確認）') : name ? (name + (isChild ? ' 👶兒童' : '')) : (num + ' 號（空位）');
   el.appendChild(tip);
   el.onclick = () => openSeatModal(t, side, idx);
 
-  // 拖拉調整座位：只有已指派的座位可以被拖，任何座位（含空位）都可以當放置目標
-  el.draggable = !!name;
+  // 拖拉調整座位：已指派或佔位的座位可以被拖，任何座位（含空位）都可以當放置目標
+  el.draggable = !!entry;
   el.addEventListener('dragstart', e => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', JSON.stringify({ t, side, idx }));
@@ -574,7 +586,8 @@ function openSeatModal(t, side, idx) {
     TABLE_NAMES[t - 1] + (side === 'A' ? '左' : '右') + '側 ' + (idx + 1) + ' 號';
   document.getElementById('seat-search').value = '';
   document.getElementById('seat-clear-btn').hidden = !current;
-  document.getElementById('seat-child-cb').checked = !!(current && current.child);
+  document.getElementById('seat-child-cb').checked = !!(current && !isPlaceholder(current) && current.child);
+  document.getElementById('seat-placeholder-input').value = isPlaceholder(current) ? current.label : '';
   renderPickList('');
   document.getElementById('seat-ov').classList.add('open');
 }
@@ -606,6 +619,16 @@ function renderPickList(search) {
 async function assignSeat(entry) {
   const { t, side, idx } = seatCtx;
   seatSnapshot.seats[t][side][idx] = entry ? { ...entry, child: document.getElementById('seat-child-cb').checked } : null;
+  closeSeatModal();
+  renderSeating();
+  await saveSeatsToBackend();
+}
+
+async function assignPlaceholder() {
+  const label = document.getElementById('seat-placeholder-input').value.trim();
+  if (!label) { alert('請輸入佔位用的文字（例如：新郎大學同學）'); return; }
+  const { t, side, idx } = seatCtx;
+  seatSnapshot.seats[t][side][idx] = { placeholder: true, label };
   closeSeatModal();
   renderSeating();
   await saveSeatsToBackend();
