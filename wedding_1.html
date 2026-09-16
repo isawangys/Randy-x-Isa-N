@@ -1448,8 +1448,12 @@ async function syncFromGSheet() {
         return '';
       };
 
-      // 用「時間戳記」去重＋比對同一份填答是否已存在
-      const existing = ts ? guests.find(g => g.formTs === ts) : null;
+      // 用「時間戳記」去重＋比對同一份填答是否已存在；如果時間戳記是空的（例如直接在
+      // 試算表手動加的一列，不是透過表單填的，沒有自動產生時間戳記），改用姓名＋關係比對，
+      // 否則每次同步都會把它當成新賓客重複加入
+      const existing = ts
+        ? guests.find(g => g.formTs === ts)
+        : guests.find(g => !g.formTs && g.name === name && g.relation === relation);
       if (existing) {
         Object.assign(existing, sheetFields);
         // 邀請方還沒被分類過（空白）才補判斷；已經有值（不管是自動判斷還是你手動改過的）一律不動
