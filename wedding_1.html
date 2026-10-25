@@ -460,6 +460,7 @@ let timelines = LS('tl')    || getDefaultTimeline();
 let seatData  = LS('seats') || null;
 let seatsPerSide = LS('sps') || 24;
 let seatChildFlags = LS('seatChildFlags') || null; // 跟 seatData 平行的結構，記錄哪些座位是兒童座位
+let seatAlias = LS('seatAlias') || null; // 跟 seatData 平行的結構，記錄每個座位的別名（排位用的顯示名字，不影響賓客資料與人數）
 const AISLE_EVERY = 12; // 每 12 個座位留一個走道，跟 guest-share.html 保持一致
 
 let editId=null, curModal=null, curSeatKey=null;
@@ -472,6 +473,7 @@ let batchDestIndex = 0;
 
 if(!seatData) seatData = initSeats(seatsPerSide);
 if(!seatChildFlags) seatChildFlags = initChildFlags(seatsPerSide);
+if(!seatAlias) seatAlias = initAlias(seatsPerSide);
 
 // ═══ Default Todos ═══════════════════════════════════════════════════
 function getDefaultTodos() {
@@ -926,6 +928,23 @@ function initChildFlags(sps) {
   return d;
 }
 
+function initAlias(sps) {
+  sps=parseInt(sps)||24;
+  const d={};
+  for(let t=1;t<=4;t++) d[t]={A:Array(sps).fill(''),B:Array(sps).fill('')};
+  return d;
+}
+
+// 座位別名的讀寫：陣列長度可能跟 seatData 不一致（舊資料、從後端讀回），所以讀寫都容錯
+function getSeatAlias(t,side,idx) {
+  return (seatAlias[t] && seatAlias[t][side] && seatAlias[t][side][idx]) || '';
+}
+function setSeatAlias(t,side,idx,val) {
+  if(!seatAlias[t]) seatAlias[t]={A:[],B:[]};
+  if(!seatAlias[t][side]) seatAlias[t][side]=[];
+  seatAlias[t][side][idx]=val||'';
+}
+
 function resizeSeats(val) {
   const sps=parseInt(val)||24;
   seatsPerSide=sps;
@@ -938,9 +957,13 @@ function resizeSeats(val) {
       const cf=seatChildFlags[t][s];
       if(cf.length<sps) { for(let i=cf.length;i<sps;i++) cf.push(false); }
       else seatChildFlags[t][s]=cf.slice(0,sps);
+      if(!seatAlias[t]) seatAlias[t]={A:[],B:[]};
+      const al=seatAlias[t][s]||(seatAlias[t][s]=[]);
+      if(al.length<sps) { for(let i=al.length;i<sps;i++) al.push(''); }
+      else seatAlias[t][s]=al.slice(0,sps);
     });
   }
-  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); SS('seatAlias',seatAlias); pushSeatsToBackend();
   renderSeating(); updateDash();
 }
 
@@ -1007,7 +1030,9 @@ function createSeatEl(t, side, idx, gid) {
   const sideClass = g ? 'side-' + (g.side || 'none') : '';
   const batchIdx = batchSelection.findIndex(x => x.t===t && x.side===side && x.idx===idx);
   s.className = 'seat' + (placeholder ? ' placeholder' : (sideClass ? ' ' + sideClass : '')) + (isChild ? ' child' : '') + (batchIdx!==-1 ? ' batch-selected' : '');
-  const name = placeholder ? gid.label : (g ? g.name : '');
+  const guestName = placeholder ? gid.label : (g ? g.name : '');
+  const alias = (gid && !placeholder && g) ? getSeatAlias(t, side, idx) : '';
+  const name = alias || guestName; // 有別名就顯示別名，沒有才顯示賓客姓名
   const num = idx + 1;
 
   // Content: show seat number or (up to 6 chars of) the guest's name／佔位文字
@@ -1023,7 +1048,7 @@ function createSeatEl(t, side, idx, gid) {
   tip.className = 'seat-tooltip';
   tip.textContent = placeholder
     ? `${name}（佔位，尚未確認）(${['一','二','三','四'][t-1]}排${side==='A'?'左':'右'}-${num})`
-    : gid ? `${name}${isChild?' 👶兒童':''} (${['一','二','三','四'][t-1]}排${side==='A'?'左':'右'}-${num})` : `${TABLE_NAMES_SHORT[t-1]}排${side==='A'?'左':'右'}側 ${num} 號（空位）`;
+    : gid ? `${alias ? alias + '（' + guestName + '）' : name}${isChild?' 👶兒童':''} (${['一','二','三','四'][t-1]}排${side==='A'?'左':'右'}-${num})` : `${TABLE_NAMES_SHORT[t-1]}排${side==='A'?'左':'右'}側 ${num} 號（空位）`;
   s.appendChild(tip);
 
   if (batchIdx !== -1) {
@@ -1085,15 +1110,20 @@ function moveSeatContents(src, dst) {
   if (!srcGid) return; // 來源沒有人，沒什麼好搬的
   const srcChild = seatChildFlags[src.t][src.side][src.idx];
   const dstChild = seatChildFlags[dst.t][dst.side][dst.idx];
+  const srcAlias = getSeatAlias(src.t, src.side, src.idx);
+  const dstAlias = getSeatAlias(dst.t, dst.side, dst.idx);
   seatData[dst.t][dst.side][dst.idx] = srcGid;
   seatData[src.t][src.side][src.idx] = dstGid;
   seatChildFlags[dst.t][dst.side][dst.idx] = srcChild;
   seatChildFlags[src.t][src.side][src.idx] = dstChild;
+  setSeatAlias(dst.t, dst.side, dst.idx, srcAlias);
+  setSeatAlias(src.t, src.side, src.idx, dstAlias);
 
   recomputeSeatLabels();
   SS('guests', guests);
   SS('seats', seatData);
   SS('seatChildFlags', seatChildFlags);
+  SS('seatAlias', seatAlias);
   pushSeatsToBackend();
   pushGuestsToBackend();
   renderSeating();
@@ -1216,6 +1246,10 @@ function openSeatModal(t,side,idx,currentGid) {
     <label id="seat-child-wrap" style="font-size:12px;display:none;align-items:center;gap:6px;margin-top:8px">
       <input type="checkbox" id="seat-child-cb" ${curIsChild?'checked':''}> 這是兒童座位
     </label>
+    <div id="seat-alias-wrap" class="fg" style="margin-top:10px;display:${(currentGid && !curPlaceholder)?'block':'none'}">
+      <label>這個座位的別名（選填，例如同行者的真實姓名；只影響座位表顯示）</label>
+      <input type="text" id="seat-alias-input" maxlength="20" placeholder="留空就顯示賓客姓名" value="${getSeatAlias(t,side,idx).replace(/"/g,'&quot;')}" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+    </div>
     <div id="seat-warn" style="font-size:12px;color:#dc2626;margin-top:6px;display:none"></div>
     <div class="fg" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
       <label>或者：先佔位（人還沒填表單，但想先留位子）</label>
@@ -1239,6 +1273,11 @@ function openSeatModal(t,side,idx,currentGid) {
   document.getElementById('seat-guest-sel').onchange=function() {
     const gid=this.value;
     updateChildWrap(gid);
+    // 別名屬於「這個座位上的這位賓客」：換成別人就清空，選成空位就隱藏
+    const aliasWrap=document.getElementById('seat-alias-wrap');
+    const aliasInput=document.getElementById('seat-alias-input');
+    aliasWrap.style.display=gid?'block':'none';
+    if(gid!==currentGid) aliasInput.value='';
     if(!gid){document.getElementById('seat-warn').style.display='none';return;}
     const g=guests.find(x=>x.id===gid);
     if(!g) return;
@@ -1261,9 +1300,11 @@ function saveSeat() {
   const childCb=document.getElementById('seat-child-cb');
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=sel||null;
   seatChildFlags[seatCtx.t][seatCtx.s][seatCtx.idx]=!!(sel && childCb && childCb.checked);
+  const aliasEl=document.getElementById('seat-alias-input');
+  setSeatAlias(seatCtx.t,seatCtx.s,seatCtx.idx, sel && aliasEl ? aliasEl.value.trim() : '');
   recomputeSeatLabels();
   SS('guests',guests);
-  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend(); pushGuestsToBackend();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); SS('seatAlias',seatAlias); pushSeatsToBackend(); pushGuestsToBackend();
   closeSeatModal(); renderSeating();
 }
 
@@ -1272,25 +1313,28 @@ function saveSeatPlaceholder() {
   if(!label){ alert('請輸入佔位用的文字（例如：新郎大學同學）'); return; }
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]={ placeholder:true, label };
   seatChildFlags[seatCtx.t][seatCtx.s][seatCtx.idx]=false;
+  setSeatAlias(seatCtx.t,seatCtx.s,seatCtx.idx,'');
   recomputeSeatLabels();
-  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); SS('seatAlias',seatAlias); pushSeatsToBackend();
   closeSeatModal(); renderSeating();
 }
 
 function clearSeat() {
   seatData[seatCtx.t][seatCtx.s][seatCtx.idx]=null;
   seatChildFlags[seatCtx.t][seatCtx.s][seatCtx.idx]=false;
+  setSeatAlias(seatCtx.t,seatCtx.s,seatCtx.idx,'');
   recomputeSeatLabels();
   SS('guests',guests);
-  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend(); pushGuestsToBackend(); closeSeatModal(); renderSeating();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); SS('seatAlias',seatAlias); pushSeatsToBackend(); pushGuestsToBackend(); closeSeatModal(); renderSeating();
 }
 
 function clearAllSeats() {
   if(!confirm('確定要清除所有座位安排嗎？')) return;
   Object.values(seatData).forEach(t=>['A','B'].forEach(s=>t[s].fill(null)));
   Object.values(seatChildFlags).forEach(t=>['A','B'].forEach(s=>t[s].fill(false)));
+  Object.values(seatAlias).forEach(t=>['A','B'].forEach(s=>t[s].fill('')));
   guests.forEach(g=>{g.seat=''}); SS('guests',guests);
-  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); pushSeatsToBackend(); pushGuestsToBackend(); renderSeating();
+  SS('seats',seatData); SS('seatChildFlags',seatChildFlags); SS('seatAlias',seatAlias); pushSeatsToBackend(); pushGuestsToBackend(); renderSeating();
 }
 
 function closeSeatModal(e) {
@@ -1635,7 +1679,7 @@ async function pushSeatsToBackend() {
         if (!gid) { seats[t][side].push(null); return; }
         if (isPlaceholder(gid)) { seats[t][side].push({ placeholder: true, label: gid.label }); return; }
         const g = guests.find(x => x.id === gid);
-        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '', child: !!seatChildFlags[t][side][idx], side: g.side || '' } : null);
+        seats[t][side].push(g ? { name: g.name, formTs: g.formTs || '', child: !!seatChildFlags[t][side][idx], side: g.side || '', alias: getSeatAlias(t, side, idx) } : null);
       });
     });
   }
@@ -1658,9 +1702,11 @@ async function pullSeatsFromBackend() {
     const sps = json.seatsPerSide || seatsPerSide;
     const newSeatData = {};
     const newChildFlags = {};
+    const newAlias = {};
     for (let t = 1; t <= 4; t++) {
       newSeatData[t] = { A: [], B: [] };
       newChildFlags[t] = { A: [], B: [] };
+      newAlias[t] = { A: [], B: [] };
       ['A','B'].forEach(side => {
         const arr = (json.seats[t] && json.seats[t][side]) || [];
         newSeatData[t][side] = arr.map(entry => {
@@ -1670,13 +1716,21 @@ async function pullSeatsFromBackend() {
           return g ? g.id : null;
         });
         newChildFlags[t][side] = arr.map(entry => !!(entry && entry.child));
+        // 後端若沒有回傳 alias 欄位（例如 Apps Script 沒存、或舊資料），而且該座位還是同一位賓客，就保留本機的別名，避免被空值蓋掉
+        newAlias[t][side] = arr.map((entry, i) => {
+          if (!entry || entry.placeholder) return '';
+          if ('alias' in entry) return entry.alias ? String(entry.alias) : '';
+          return newSeatData[t][side][i] && newSeatData[t][side][i] === (seatData[t] && seatData[t][side] && seatData[t][side][i]) ? getSeatAlias(t, side, i) : '';
+        });
       });
     }
     seatData = newSeatData;
     seatChildFlags = newChildFlags;
+    seatAlias = newAlias;
     seatsPerSide = sps;
     SS('seats', seatData);
     SS('seatChildFlags', seatChildFlags);
+    SS('seatAlias', seatAlias);
     SS('sps', seatsPerSide);
     recomputeSeatLabels(); // 座位可能是在 guest-share.html 上改的，本機的「桌/座位」欄位要跟著重算
     SS('guests', guests);
