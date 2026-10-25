@@ -1786,7 +1786,8 @@ async function pullGuestsFromBackend() {
 
 (async function initBackendSync() {
   await pullGuestsFromBackend(); // 先合併其他裝置可能新增的賓客
-  await pushGuestsToBackend();   // 再把（合併後的）目前名單推回去，確保後端隨時有最新資料
+  // 開啟頁面時不自動把本機名單推回後端：本機資料若是舊的（例如很久沒開的裝置），
+  // 一開頁面就整份覆蓋後端，會把已刪除的賓客推回去。名單只在實際編輯、同步、排座位時才推送。
   await pullSeatsFromBackend();
 })();
 </script>
