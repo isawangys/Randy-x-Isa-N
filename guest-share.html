@@ -514,7 +514,9 @@ function renderSeating() {
 function createSeatEl(t, side, idx, entry) {
   const el = document.createElement('div');
   const placeholder = isPlaceholder(entry);
-  const name = placeholder ? entry.label : (entry && entry.name ? entry.name : '');
+  const guestName = placeholder ? entry.label : (entry && entry.name ? entry.name : '');
+  const alias = (!placeholder && entry && entry.alias) ? String(entry.alias) : '';
+  const name = alias || guestName; // 有別名就顯示別名（別名只在 wedding_1.html 編輯）
   const isChild = !!(entry && !placeholder && entry.child);
   const sideClass = (name && !placeholder) ? 'side-' + (entry.side || 'none') : '';
   const batchIdx = batchSelection.findIndex(x => x.t === t && x.side === side && x.idx === idx);
@@ -528,7 +530,7 @@ function createSeatEl(t, side, idx, entry) {
   }
   const tip = document.createElement('div');
   tip.className = 'seat-tooltip';
-  tip.textContent = placeholder ? (name + '（佔位，尚未確認）') : name ? (name + (isChild ? ' 👶兒童' : '')) : (num + ' 號（空位）');
+  tip.textContent = placeholder ? (name + '（佔位，尚未確認）') : name ? ((alias ? alias + '（' + guestName + '）' : name) + (isChild ? ' 👶兒童' : '')) : (num + ' 號（空位）');
   el.appendChild(tip);
 
   if (batchIdx !== -1) {
@@ -714,6 +716,7 @@ function renderPickList(search) {
 
 async function assignSeat(entry) {
   const { t, side, idx } = seatCtx;
+  // 這裡重新指派賓客，不帶入舊座位的別名（別名只在 wedding_1.html 編輯）
   seatSnapshot.seats[t][side][idx] = entry ? { ...entry, child: document.getElementById('seat-child-cb').checked } : null;
   closeSeatModal();
   renderSeating();
